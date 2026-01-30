@@ -32,7 +32,12 @@ export class EndfieldService {
     private gameRole: string | null = null;
 
     constructor(accountToken: string) {
-        this.accountToken = accountToken;
+        // URL decode if needed (tokens from browser may be URL-encoded)
+        try {
+            this.accountToken = decodeURIComponent(accountToken);
+        } catch {
+            this.accountToken = accountToken;
+        }
         this.client = axios.create({
             timeout: 30000,
             headers: {
