@@ -28,6 +28,13 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         .setTimestamp()
         .setFooter({ text: `Requested by ${interaction.user.username}` });
 
+    // Server time in UTC+8
+    const now = new Date();
+    const utc8Time = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+    const timeStr = utc8Time.toISOString().replace('T', ' ').substring(0, 19);
+
+    embed.setDescription(`🕐 **Server Time (UTC+8):** ${timeStr}`);
+
     // Hoyolab status
     if (user.hoyolab?.token) {
         const gameNames: Record<string, string> = {

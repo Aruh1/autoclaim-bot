@@ -33,6 +33,18 @@ client.once(Events.ClientReady, (readyClient) => {
 
     // Start scheduler
     startScheduler(client);
+
+    // Update presence with UTC+8 time
+    const updatePresence = () => {
+        const now = new Date();
+        const utc8 = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+        const timeStr = utc8.toISOString().substring(11, 16); // HH:MM
+
+        readyClient.user.setActivity(`🕐 ${timeStr} UTC+8 | /help`, { type: 3 }); // Watching
+    };
+
+    updatePresence();
+    setInterval(updatePresence, 60 * 1000); // Update every minute
 });
 
 // Interaction handler
