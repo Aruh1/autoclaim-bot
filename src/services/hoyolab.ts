@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import axios, { type AxiosInstance } from 'axios';
 
 export interface ClaimResult {
@@ -28,18 +29,6 @@ const GAMES: Record<string, GameConfig> = {
         actId: 'e202303301540311',
         bizName: 'hkrpg_global',
     },
-    honkai3: {
-        name: 'Honkai Impact 3rd',
-        url: 'https://sg-public-api.hoyolab.com/event/mani/sign',
-        actId: 'e202110291205111',
-        bizName: 'bh3_global',
-    },
-    tearsOfThemis: {
-        name: 'Tears of Themis',
-        url: 'https://sg-public-api.hoyolab.com/event/luna/os/sign',
-        actId: 'e202308141137581',
-        bizName: 'tot_global',
-    },
     zenlessZoneZero: {
         name: 'Zenless Zone Zero',
         url: 'https://sg-public-api.hoyolab.com/event/luna/zzz/os/sign',
@@ -48,7 +37,7 @@ const GAMES: Record<string, GameConfig> = {
         extraHeaders: {
             'x-rpc-signgame': 'zzz',
         },
-    },
+    }
 };
 
 const DEFAULT_HEADERS = {
@@ -86,6 +75,14 @@ export class HoyolabService {
                 'Cookie': token,
             },
         });
+    }
+
+    private generateDS(): string {
+        const salt = '6s25p5ox5y14umn1p61aqyyvbvvl3lrt';
+        const t = Math.floor(Date.now() / 1000);
+        const r = Math.random().toString(36).substring(2, 8);
+        const h = createHash('md5').update(`salt=${salt}&t=${t}&r=${r}`).digest('hex');
+        return `${t},${r},${h}`;
     }
 
     async claimGame(gameKey: string): Promise<ClaimResult> {
@@ -194,7 +191,6 @@ export class HoyolabService {
             const response = await this.client.get(url);
 
             if (response.data.retcode === 0 && response.data.data?.list) {
-                // Filter out invalid or unwanted regions if necessary
                 return response.data.data.list;
             }
             return [];
@@ -208,7 +204,6 @@ export class HoyolabService {
         const game = GAMES[gameKey];
         if (!game) return { success: false, message: 'Unknown game' };
 
-        // Check if token contains cookie_token (v2) which is required for redemption
         if (!this.token.includes('cookie_token') && !this.token.includes('cookie_token_v2')) {
             return {
                 success: false,
@@ -216,46 +211,37 @@ export class HoyolabService {
             };
         }
 
-        // Redemption endpoints vary slightly by game, but most use the common one now
-        // Genshin: https://sg-hk4e-api.hoyoverse.com/common/apicdkey/api/webExchangeCdkey
-        // HSR: https://sg-hkrpg-api.hoyoverse.com/common/apicdkey/api/webExchangeCdkey
-        // ZZZ: https://public-operation-nap.hoyoverse.com/common/apicdkey/api/webExchangeCdkey
+        // Use the common "Hyl" endpoint which uses DS headers and is less strict about Origin
+        const baseUrl = 'https://sg-hkrpg-api.hoyolab.com/common/apicdkey/api/webExchangeCdkeyHyl';
 
-        let baseUrl = 'https://sg-hk4e-api.hoyoverse.com';
-        let origin = 'https://genshin.hoyoverse.com';
-        let refererPath = '/en/gift';
+        const params = new URLSearchParams({
+            uid: String(account.game_uid),
+            region: account.region,
+            lang: 'en',
+            cdkey: code,
+            game_biz: game.bizName
+        });
 
-        if (gameKey === 'starRail') {
-            baseUrl = 'https://sg-hkrpg-api.hoyoverse.com';
-            origin = 'https://hsr.hoyoverse.com';
-            refererPath = '/gift'; // HSR uses /gift usually
-        }
-        if (gameKey === 'zenlessZoneZero') {
-            baseUrl = 'https://public-operation-nap.hoyoverse.com';
-            origin = 'https://zenless.hoyoverse.com';
-            refererPath = '/redemption'; // ZZZ uses /redemption
-        }
-
-        const url = `${baseUrl}/common/apicdkey/api/webExchangeCdkey?uid=${account.game_uid}&region=${account.region}&lang=en&cdkey=${code}&game_biz=${game.bizName}`;
+        const url = `${baseUrl}?${params.toString()}`;
 
         try {
-            // Debugging: Log the headers being sent
             console.log(`[Redeem] Attempting to redeem for ${account.game_uid} (${gameKey})`);
             console.log(`[Redeem] URL: ${url}`);
-            if (!this.token.includes('account_id') && !this.token.includes('account_id_v2')) {
-                console.warn('[Redeem] Warning: account_id/account_id_v2 missing from cookie, this is likely why it fails.');
-            }
 
-            // Redemption requires specific Origin/Referer and cookie_token + account_id
-            const response = await this.client.get(url, {
-                headers: {
-                    'Origin': origin,
-                    'Referer': `${origin}${refererPath}`,
-                    'Cookie': this.token,
-                    // vital for some endpoints
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                }
-            });
+            const headers = {
+                'x-rpc-app_version': '1.5.0',
+                'x-rpc-client_type': '5',
+                'x-rpc-language': 'en-us',
+                'DS': this.generateDS(),
+                'Cookie': this.token,
+                // Using the specific User-Agent from qingque reference if possible, or keeping standard one.
+                // qingque uses a standard browser UA in headers but generates DS with "5" (Others/Web).
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Origin': 'https://act.hoyolab.com',
+                'Referer': 'https://act.hoyolab.com/'
+            };
+
+            const response = await this.client.get(url, { headers });
             const data = response.data;
 
             console.log(`[Redeem] Response for ${code}:`, JSON.stringify(data));
