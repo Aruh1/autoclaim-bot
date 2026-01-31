@@ -14,6 +14,11 @@ const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
     ],
+    ws: {
+        properties: {
+            $browser: 'Discord iOS',
+        },
+    } as any,
 });
 
 // Ready event
