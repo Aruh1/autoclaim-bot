@@ -7,6 +7,8 @@ import * as settings from './settings';
 import * as help from './help';
 import * as ping from './ping';
 
+import * as statistic from './statistic';
+
 export const commands = [
     setupHoyolab,
     setupEndfield,
@@ -16,6 +18,7 @@ export const commands = [
     settings,
     help,
     ping,
+    statistic,
 ];
 
 export const commandsData = commands.map(cmd => cmd.data);
