@@ -44,10 +44,13 @@ Bot Discord untuk auto-claim daily rewards dari:
 ## Cara Mendapatkan Token
 
 ### Hoyolab Token
-1. Buka [HoYoLAB](https://www.hoyolab.com) dan login
-2. Tekan F12 → Application → Cookies
-3. Copy nilai `ltoken_v2` dan `ltuid_v2`
-4. Format: `ltoken_v2=xxx; ltuid_v2=xxx`
+1. **PENTING:** Untuk fitur redeem code, gunakan cookie dari halaman redeem, bukan dari halaman utama Hoyolab.
+2. Buka halaman redeem salah satu game (contoh: [Genshin Gift](https://genshin.hoyoverse.com/en/gift)).
+3. Login dan pastikan **Region** dan **Nickname** karakter muncul.
+4. Tekan F12 (Developer Tools) lalu pilih tab **Console**.
+5. Ketik `document.cookie` dan tekan Enter.
+6. Copy seluruh teks yang muncul (tanpa tanda kutip).
+   - Pastikan di dalamnya ada `cookie_token` atau `cookie_token_v2`.
 
 ### Endfield/SKPORT Token
 1. Buka [Endfield Sign-in Page](https://game.skport.com/endfield/sign-in) dan login

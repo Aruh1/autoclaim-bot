@@ -208,20 +208,46 @@ export class HoyolabService {
         const game = GAMES[gameKey];
         if (!game) return { success: false, message: 'Unknown game' };
 
+        // Check if token contains cookie_token (v2) which is required for redemption
+        if (!this.token.includes('cookie_token') && !this.token.includes('cookie_token_v2')) {
+            return {
+                success: false,
+                message: 'Cookie missing `cookie_token`. Please get a fresh cookie from the official redemption page.'
+            };
+        }
+
         // Redemption endpoints vary slightly by game, but most use the common one now
         // Genshin: https://sg-hk4e-api.hoyoverse.com/common/apicdkey/api/webExchangeCdkey
         // HSR: https://sg-hkrpg-api.hoyoverse.com/common/apicdkey/api/webExchangeCdkey
         // ZZZ: https://public-operation-nap.hoyoverse.com/common/apicdkey/api/webExchangeCdkey
 
         let baseUrl = 'https://sg-hk4e-api.hoyoverse.com';
-        if (gameKey === 'starRail') baseUrl = 'https://sg-hkrpg-api.hoyoverse.com';
-        if (gameKey === 'zenlessZoneZero') baseUrl = 'https://public-operation-nap.hoyoverse.com';
-        if (gameKey === 'honkai3') baseUrl = 'https://sg-public-api.hoyoverse.com'; // Verify this one
+        let referer = 'https://genshin.hoyoverse.com/';
+
+        if (gameKey === 'starRail') {
+            baseUrl = 'https://sg-hkrpg-api.hoyoverse.com';
+            referer = 'https://hsr.hoyoverse.com/';
+        }
+        if (gameKey === 'zenlessZoneZero') {
+            baseUrl = 'https://public-operation-nap.hoyoverse.com';
+            referer = 'https://zenless.hoyoverse.com/';
+        }
+        if (gameKey === 'honkai3') {
+            baseUrl = 'https://sg-public-api.hoyoverse.com';
+            referer = 'https://honkaiimpact3.hoyoverse.com/';
+        }
 
         const url = `${baseUrl}/common/apicdkey/api/webExchangeCdkey?uid=${account.game_uid}&region=${account.region}&lang=en&cdkey=${code}&game_biz=${game.bizName}`;
 
         try {
-            const response = await this.client.get(url);
+            // Redemption requires specific Origin/Referer and cookie_token
+            const response = await this.client.get(url, {
+                headers: {
+                    'Origin': referer,
+                    'Referer': `${referer}/gift`,
+                    'Cookie': this.token // Ensure cookie is passed (it's in default but explicit here doesn't hurt)
+                }
+            });
             const data = response.data;
 
             if (data.retcode === 0) {
