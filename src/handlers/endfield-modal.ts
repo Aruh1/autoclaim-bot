@@ -1,6 +1,5 @@
 import { type ModalSubmitInteraction, MessageFlags } from 'discord.js';
 import { User } from '../database/models/User';
-import { EndfieldService } from '../services/endfield';
 
 export async function handleEndfieldModal(interaction: ModalSubmitInteraction): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -18,18 +17,22 @@ export async function handleEndfieldModal(interaction: ModalSubmitInteraction): 
         return;
     }
 
-    // Validate token
-    const service = new EndfieldService(skOAuthCredKey, gameId, server);
-    const validation = await service.validateToken();
-
-    if (!validation.valid) {
+    // Validate basic format
+    if (!skOAuthCredKey || skOAuthCredKey.length < 20) {
         await interaction.editReply({
-            content: `❌ Invalid token: ${validation.message}\n\n**Cara mendapatkan token:**\n1. Buka https://game.skport.com/endfield/sign-in dan login\n2. Tekan F12 → Console\n3. Jalankan script getToken.js dari repo\n4. Copy nilai **SK_OAUTH_CRED_KEY**\n\n**Game UID** bisa dilihat di profil game kamu.`,
+            content: '❌ Token terlalu pendek. Pastikan copy nilai **SK_OAUTH_CRED_KEY** yang lengkap dari cookies.',
         });
         return;
     }
 
-    // Save to database
+    if (!gameId || !/^\d+$/.test(gameId)) {
+        await interaction.editReply({
+            content: '❌ Game UID harus berupa angka saja. Contoh: 10012345',
+        });
+        return;
+    }
+
+    // Save to database (skip API validation, let user test with /claim)
     await User.findOneAndUpdate(
         { discordId: interaction.user.id },
         {
@@ -51,6 +54,6 @@ export async function handleEndfieldModal(interaction: ModalSubmitInteraction): 
 
     const serverName = server === '2' ? 'Asia' : 'Americas/Europe';
     await interaction.editReply({
-        content: `✅ **Endfield token saved successfully!**\n\n**Account**: ${nickname}\n**UID**: ${gameId}\n**Server**: ${serverName}\n\nYour daily rewards will be claimed automatically every day at 00:00 UTC+8.`,
+        content: `✅ **Endfield token saved!**\n\n**Account**: ${nickname}\n**UID**: ${gameId}\n**Server**: ${serverName}\n\n⚠️ Gunakan \`/claim endfield\` untuk test apakah token berfungsi.`,
     });
 }
