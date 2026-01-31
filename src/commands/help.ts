@@ -67,10 +67,25 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
                 name: '🎮 Endfield Token',
                 value: [
                     '1. Buka https://game.skport.com/endfield/sign-in dan login',
-                    '2. Tekan F12 → Console, jalankan getToken.js',
-                    '3. Copy nilai **SK_OAUTH_CRED_KEY**',
-                    '4. UID dan Server bisa dilihat di profil game',
-                    '   (Server: 2=Asia, 3=Americas/Europe)',
+                    '2. Tekan F12 → Console',
+                    '3. Paste dan jalankan script berikut:',
+                ].join('\n'),
+                inline: false,
+            },
+            {
+                name: '📋 getToken.js Script',
+                value: '```js\n' +
+                    'function getCookie(n){const v=`; ${document.cookie}`;const p=v.split(`; ${n}=`);if(p.length===2)return p.pop().split(";").shift()}\n' +
+                    'console.log("SK_OAUTH_CRED_KEY:", getCookie("SK_OAUTH_CRED_KEY"))\n' +
+                    '```',
+                inline: false,
+            },
+            {
+                name: '📝 Endfield Setup Info',
+                value: [
+                    '• **SK_OAUTH_CRED_KEY**: hasil dari script di atas',
+                    '• **Game UID**: buka profil in-game, copy angka UID',
+                    '• **Server**: 2 = Asia, 3 = Americas/Europe',
                 ].join('\n'),
                 inline: false,
             },
