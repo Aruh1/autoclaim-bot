@@ -222,19 +222,18 @@ export class HoyolabService {
         // ZZZ: https://public-operation-nap.hoyoverse.com/common/apicdkey/api/webExchangeCdkey
 
         let baseUrl = 'https://sg-hk4e-api.hoyoverse.com';
-        let referer = 'https://genshin.hoyoverse.com/';
+        let origin = 'https://genshin.hoyoverse.com';
+        let refererPath = '/en/gift';
 
         if (gameKey === 'starRail') {
             baseUrl = 'https://sg-hkrpg-api.hoyoverse.com';
-            referer = 'https://hsr.hoyoverse.com/';
+            origin = 'https://hsr.hoyoverse.com';
+            refererPath = '/gift'; // HSR uses /gift usually
         }
         if (gameKey === 'zenlessZoneZero') {
             baseUrl = 'https://public-operation-nap.hoyoverse.com';
-            referer = 'https://zenless.hoyoverse.com/';
-        }
-        if (gameKey === 'honkai3') {
-            baseUrl = 'https://sg-public-api.hoyoverse.com';
-            referer = 'https://honkaiimpact3.hoyoverse.com/';
+            origin = 'https://zenless.hoyoverse.com';
+            refererPath = '/redemption'; // ZZZ uses /redemption
         }
 
         const url = `${baseUrl}/common/apicdkey/api/webExchangeCdkey?uid=${account.game_uid}&region=${account.region}&lang=en&cdkey=${code}&game_biz=${game.bizName}`;
@@ -243,7 +242,6 @@ export class HoyolabService {
             // Debugging: Log the headers being sent
             console.log(`[Redeem] Attempting to redeem for ${account.game_uid} (${gameKey})`);
             console.log(`[Redeem] URL: ${url}`);
-            console.log(`[Redeem] Cookie length: ${this.token.length}`);
             if (!this.token.includes('account_id') && !this.token.includes('account_id_v2')) {
                 console.warn('[Redeem] Warning: account_id/account_id_v2 missing from cookie, this is likely why it fails.');
             }
@@ -251,9 +249,11 @@ export class HoyolabService {
             // Redemption requires specific Origin/Referer and cookie_token + account_id
             const response = await this.client.get(url, {
                 headers: {
-                    'Origin': referer,
-                    'Referer': `${referer}/gift`,
-                    'Cookie': this.token
+                    'Origin': origin,
+                    'Referer': `${origin}${refererPath}`,
+                    'Cookie': this.token,
+                    // vital for some endpoints
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 }
             });
             const data = response.data;

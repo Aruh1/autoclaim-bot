@@ -17,9 +17,7 @@ export const data = new SlashCommandBuilder()
                     .addChoices(
                         { name: 'Genshin Impact', value: 'genshin' },
                         { name: 'Honkai: Star Rail', value: 'starRail' },
-                        { name: 'Zenless Zone Zero', value: 'zenlessZoneZero' },
-                        { name: 'Honkai Impact 3rd', value: 'honkai3' },
-                        { name: 'Tears of Themis', value: 'tearsOfThemis' }
+                        { name: 'Zenless Zone Zero', value: 'zenlessZoneZero' }
                     ))
             .addStringOption(option =>
                 option.setName('code')
