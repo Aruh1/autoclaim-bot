@@ -45,8 +45,8 @@ async function redeemForUser(
     for (const account of accounts) {
         const accInfo = `${gameKey} [${account.region_name} - ${account.nickname}]`;
         for (const code of codes) {
-            // Rate limit delay
-            await new Promise(r => setTimeout(r, 1000));
+            // Rate limit delay (5 seconds to avoid -1048 and cooldown errors)
+            await new Promise(r => setTimeout(r, 5000));
             const result = await hoyolab.redeemCode(gameKey, account, code);
             const icon = result.success ? '✅' : '❌';
             results.push(`${icon} **${accInfo}** (${code}): ${result.message}`);
