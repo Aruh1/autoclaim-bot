@@ -39,7 +39,7 @@ export async function claimEndfield(
     };
 
     try {
-        const response = await axios.post(ATTENDANCE_URL, null, {
+        const response = await axios.post(ATTENDANCE_URL, {}, {
             headers,
             timeout: 30000,
         });
