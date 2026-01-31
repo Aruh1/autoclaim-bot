@@ -1,7 +1,8 @@
-import { ChatInputCommandInteraction, type Interaction, MessageFlags, Collection } from 'discord.js';
+import { ChatInputCommandInteraction, type Interaction, MessageFlags, Collection, StringSelectMenuInteraction } from 'discord.js';
 import { commands } from '../commands';
 import { handleHoyolabModal } from './hoyolab-modal';
 import { handleEndfieldModal } from './endfield-modal';
+import { handleHoyolabSelect } from './hoyolab-select';
 
 // Store commands in collection
 const commandCollection = new Collection<string, typeof commands[0]>();
@@ -59,6 +60,22 @@ export async function handleInteraction(interaction: Interaction) {
                     content: '❌ An error occurred while processing your input.',
                     flags: MessageFlags.Ephemeral,
                 });
+            }
+        }
+    }
+
+    // Handle Select Menus
+    if (interaction.isStringSelectMenu()) {
+        try {
+            if (interaction.customId === 'hoyolab-games-select') {
+                await handleHoyolabSelect(interaction as StringSelectMenuInteraction);
+            }
+        } catch (error) {
+            console.error('Error handling select menu:', error);
+            if (interaction.replied || interaction.deferred) {
+                await interaction.followUp({ content: '❌ Error processing selection.', flags: MessageFlags.Ephemeral });
+            } else {
+                await interaction.reply({ content: '❌ Error processing selection.', flags: MessageFlags.Ephemeral });
             }
         }
     }

@@ -1,4 +1,4 @@
-import { type ModalSubmitInteraction, MessageFlags } from 'discord.js';
+import { type ModalSubmitInteraction, MessageFlags, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ActionRowBuilder } from 'discord.js';
 import { User } from '../database/models/User';
 import { HoyolabService } from '../services/hoyolab';
 
@@ -7,38 +7,6 @@ export async function handleHoyolabModal(interaction: ModalSubmitInteraction): P
 
     const token = interaction.fields.getTextInputValue('hoyolab-token').trim();
     const nickname = interaction.fields.getTextInputValue('hoyolab-nickname')?.trim() || 'Unknown';
-    const gamesInput = interaction.fields.getTextInputValue('hoyolab-games')?.trim() || 'genshin, starrail, zzz';
-
-    // Parse games
-    const gameAliases: Record<string, string> = {
-        'genshin': 'genshin',
-        'gi': 'genshin',
-        'starrail': 'starRail',
-        'hsr': 'starRail',
-        'sr': 'starRail',
-        'honkai3': 'honkai3',
-        'hi3': 'honkai3',
-        'tot': 'tearsOfThemis',
-        'themis': 'tearsOfThemis',
-        'zzz': 'zenlessZoneZero',
-        'zenless': 'zenlessZoneZero',
-    };
-
-    const games = {
-        genshin: false,
-        starRail: false,
-        honkai3: false,
-        tearsOfThemis: false,
-        zenlessZoneZero: false,
-    };
-
-    const inputGames = gamesInput.toLowerCase().split(',').map(g => g.trim());
-    for (const game of inputGames) {
-        const key = gameAliases[game];
-        if (key && key in games) {
-            (games as any)[key] = true;
-        }
-    }
 
     // Validate token
     const service = new HoyolabService(token);
@@ -51,17 +19,22 @@ export async function handleHoyolabModal(interaction: ModalSubmitInteraction): P
         return;
     }
 
-    // Save to database
+    // Save to database (partial update)
     await User.findOneAndUpdate(
         { discordId: interaction.user.id },
         {
             $set: {
                 username: interaction.user.username,
-                hoyolab: {
-                    token,
-                    accountName: nickname,
-                    games,
-                },
+                'hoyolab.token': token,
+                'hoyolab.accountName': nickname,
+                // We default games to all false initially, user will select them next
+                'hoyolab.games': {
+                    genshin: false,
+                    starRail: false,
+                    honkai3: false,
+                    tearsOfThemis: false,
+                    zenlessZoneZero: false,
+                }
             },
             $setOnInsert: {
                 settings: { notifyOnClaim: true },
@@ -70,12 +43,39 @@ export async function handleHoyolabModal(interaction: ModalSubmitInteraction): P
         { upsert: true, new: true }
     );
 
-    const enabledGames = Object.entries(games)
-        .filter(([_, enabled]) => enabled)
-        .map(([key, _]) => key)
-        .join(', ');
+    // Create Select Menu
+    const select = new StringSelectMenuBuilder()
+        .setCustomId('hoyolab-games-select')
+        .setPlaceholder('Select games to auto-claim')
+        .setMinValues(1)
+        .setMaxValues(5)
+        .addOptions(
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Genshin Impact')
+                .setValue('genshin')
+                .setEmoji('✨'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Honkai: Star Rail')
+                .setValue('starRail')
+                .setEmoji('🚂'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Zenless Zone Zero')
+                .setValue('zenlessZoneZero')
+                .setEmoji('💤'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Honkai Impact 3rd')
+                .setValue('honkai3')
+                .setEmoji('☄️'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Tears of Themis')
+                .setValue('tearsOfThemis')
+                .setEmoji('⚖️'),
+        );
+
+    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
 
     await interaction.editReply({
-        content: `✅ **Hoyolab token saved successfully!**\n\n**Account**: ${nickname}\n**Games**: ${enabledGames || 'None'}\n\nYour daily rewards will be claimed automatically every day at 00:00 UTC+8.`,
+        content: `✅ **Token Verified!**\n\nAccount: **${nickname}**\n\nPlease select which games you want to auto-claim from the dropdown below:`,
+        components: [row],
     });
 }

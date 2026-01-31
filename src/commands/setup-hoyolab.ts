@@ -33,19 +33,10 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         .setRequired(false)
         .setMaxLength(50);
 
-    const gamesInput = new TextInputBuilder()
-        .setCustomId('hoyolab-games')
-        .setLabel('Games (comma-separated)')
-        .setPlaceholder('genshin, starrail, zzz, honkai3, tot')
-        .setValue('genshin, starrail, zzz')
-        .setStyle(TextInputStyle.Short)
-        .setRequired(false);
-
     const row1 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(tokenInput);
     const row2 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(nicknameInput);
-    const row3 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(gamesInput);
 
-    modal.addComponents(row1, row2, row3);
+    modal.addComponents(row1, row2);
 
     await interaction.showModal(modal);
 }
