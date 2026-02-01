@@ -61,6 +61,18 @@ async function processUrl(message: Message, processed: ProcessedUrl, settings: a
     const files: AttachmentBuilder[] = [];
     let content = "";
 
+    // Platforms that VKrDownloader supports (video platforms only)
+    const DOWNLOADABLE_PLATFORMS: PlatformId[] = [
+        PlatformId.TWITTER,
+        PlatformId.TIKTOK,
+        PlatformId.INSTAGRAM,
+        PlatformId.REDDIT,
+        PlatformId.FACEBOOK,
+        PlatformId.THREADS
+    ];
+
+    const canDownload = DOWNLOADABLE_PLATFORMS.includes(processed.platform.id);
+
     // Try to fetch rich post info
     if (settings.embedFix.richEmbeds) {
         const postInfo = await fetchPostInfo(processed.originalUrl, processed.platform, processed.postId);
@@ -69,8 +81,8 @@ async function processUrl(message: Message, processed: ProcessedUrl, settings: a
             const richEmbed = buildRichEmbed(postInfo, processed.platform);
             embeds.push(richEmbed);
 
-            // Try to download and upload media if enabled
-            if (settings.embedFix.autoUpload && postInfo.video) {
+            // Try to download and upload media if enabled (only for supported platforms)
+            if (settings.embedFix.autoUpload && postInfo.video && canDownload) {
                 const downloadResult = await downloadMedia(processed.originalUrl);
 
                 if (downloadResult.success && downloadResult.buffer) {
@@ -83,10 +95,10 @@ async function processUrl(message: Message, processed: ProcessedUrl, settings: a
         }
     }
 
-    // If no rich embed, use fixed URL
+    // If no rich embed, use fixed URL or try download
     if (embeds.length === 0) {
-        // For platforms without rich embed support, try to download media
-        if (settings.embedFix.autoUpload) {
+        // For platforms with download support, try to download media
+        if (settings.embedFix.autoUpload && canDownload) {
             const downloadResult = await downloadMedia(processed.originalUrl);
 
             if (downloadResult.success && downloadResult.buffer) {
@@ -99,7 +111,7 @@ async function processUrl(message: Message, processed: ProcessedUrl, settings: a
                 content = processed.spoilered ? `||${processed.fixedUrl}||` : processed.fixedUrl;
             }
         } else if (processed.fixedUrl !== processed.originalUrl) {
-            // Just send fixed URL
+            // Just send fixed URL (for Pixiv, Bluesky, etc.)
             content = processed.spoilered ? `||${processed.fixedUrl}||` : processed.fixedUrl;
         }
     }

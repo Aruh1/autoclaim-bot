@@ -101,7 +101,20 @@ export const PLATFORMS: PlatformConfig[] = [
         name: "Facebook",
         color: 0x1877f2,
         patterns: [
-            /https?:\/\/(www\.|m\.)?facebook\.com\/\w+\/(videos|posts|watch)/i,
+            // Supported by Facebed: /:user/posts/:(id|hash)
+            /https?:\/\/(www\.|m\.)?facebook\.com\/[\w.]+\/posts\/[\w]+/i,
+            // Supported: /share/p/:hash (posts) and /share/v/:hash (videos - partial support)
+            /https?:\/\/(www\.|m\.)?facebook\.com\/share\/(v|p)\/\w+/i,
+            // Supported: /groups/:id/posts/:(id|hash)
+            /https?:\/\/(www\.|m\.)?facebook\.com\/groups\/\d+\/posts\/[\w]+/i,
+            // Supported: /permalink.php?story_fbid and /story.php?story_fbid
+            /https?:\/\/(www\.|m\.)?facebook\.com\/(permalink|story)\.php\?story_fbid/i,
+            // Reels (supported)
+            /https?:\/\/(www\.|m\.)?facebook\.com\/reel\/\d+/i,
+            // Videos and watch
+            /https?:\/\/(www\.|m\.)?facebook\.com\/[\w.]+\/videos\/\d+/i,
+            /https?:\/\/(www\.|m\.)?facebook\.com\/watch\/?/i,
+            // fb.watch short links
             /https?:\/\/(www\.)?fb\.watch\/\w+/i
         ],
         fixes: [{ oldDomain: "facebook.com", newDomain: "facebed.com" }]
