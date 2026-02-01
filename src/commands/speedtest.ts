@@ -1,167 +1,259 @@
-import { SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import { SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder, AttachmentBuilder } from "discord.js";
+import { UniversalSpeedTest, SpeedUnits } from "universal-speedtest";
+import { createCanvas } from "@napi-rs/canvas";
 
-export const data = new SlashCommandBuilder()
-    .setName("speedtest")
-    .setDescription("Check hosting server network speed");
+export const data = new SlashCommandBuilder().setName("speedtest").setDescription("Check hosting server network speed");
+
+interface SpeedtestData {
+    downloadSpeed: number;
+    uploadSpeed: number;
+    latency: number;
+    jitter: number;
+    totalTime: number;
+    serverName: string;
+    sponsor: string;
+    isp: string;
+    country: string;
+}
+
+function generateSpeedtestImage(data: SpeedtestData, botPing: number): Buffer {
+    const width = 800;
+    const height = 420;
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+
+    // Background gradient
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, "#1a1a2e");
+    gradient.addColorStop(0.5, "#16213e");
+    gradient.addColorStop(1, "#0f3460");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Title
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 32px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Speed Test Result", width / 2, 50);
+
+    // Server info
+    ctx.font = "16px sans-serif";
+    ctx.fillStyle = "#a0a0a0";
+    ctx.fillText(`${data.serverName} (${data.sponsor})`, width / 2, 80);
+    ctx.fillText(`${data.isp} • ${data.country}`, width / 2, 100);
+
+    // Download circle
+    drawSpeedCircle(ctx, 200, 220, 90, data.downloadSpeed, "#00d4ff", "DOWNLOAD");
+
+    // Upload circle
+    drawSpeedCircle(ctx, 600, 220, 90, data.uploadSpeed, "#9c27b0", "UPLOAD");
+
+    // Ping and Jitter boxes
+    const boxY = 350;
+    const boxHeight = 50;
+
+    // Latency box
+    drawInfoBox(ctx, 100, boxY, 140, boxHeight, "PING", `${data.latency.toFixed(0)} ms`, "#4caf50");
+
+    // Jitter box
+    drawInfoBox(ctx, 260, boxY, 140, boxHeight, "JITTER", `${data.jitter.toFixed(1)} ms`, "#ff9800");
+
+    // Bot Ping box
+    drawInfoBox(ctx, 440, boxY, 140, boxHeight, "BOT PING", `${botPing} ms`, "#2196f3");
+
+    // Test Duration box
+    drawInfoBox(ctx, 600, boxY, 140, boxHeight, "DURATION", `${data.totalTime.toFixed(1)}s`, "#e91e63");
+
+    return Buffer.from(canvas.toBuffer("image/png"));
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function drawSpeedCircle(ctx: any, x: number, y: number, radius: number, speed: number, color: string, label: string) {
+    // Outer circle
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = "#333";
+    ctx.lineWidth = 8;
+    ctx.stroke();
+
+    // Progress arc (based on speed, max 1000 Mbps for full circle)
+    const progress = Math.min(speed / 1000, 1);
+    ctx.beginPath();
+    ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 8;
+    ctx.stroke();
+
+    // Speed value
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 36px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(speed.toFixed(1), x, y - 10);
+
+    // Unit
+    ctx.font = "14px sans-serif";
+    ctx.fillStyle = "#a0a0a0";
+    ctx.fillText("Mbps", x, y + 20);
+
+    // Label
+    ctx.font = "bold 14px sans-serif";
+    ctx.fillStyle = color;
+    ctx.fillText(label, x, y + radius + 25);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function drawInfoBox(
+    ctx: any,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    label: string,
+    value: string,
+    color: string
+) {
+    // Box background
+    ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+    ctx.beginPath();
+    ctx.roundRect(x - width / 2, y - height / 2, width, height, 8);
+    ctx.fill();
+
+    // Label
+    ctx.fillStyle = color;
+    ctx.font = "bold 11px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, x, y - 12);
+
+    // Value
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 18px sans-serif";
+    ctx.fillText(value, x, y + 10);
+}
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const waitingEmbed = new EmbedBuilder()
         .setTitle("🌐 Speedtest")
         .setColor(0xffff00)
         .setDescription("The Speedtest is running, please wait a bit...")
-        .setThumbnail("https://www.cloudflare.com/img/cf-facebook-card.png")
-        .setFooter({ text: "⏳ This takes approximately 15-30 seconds." });
+        .setThumbnail(
+            "https://store-images.s-microsoft.com/image/apps.52586.13510798887693184.740d7baf-50aa-4e26-adec-ae739ac12068.c9ef9495-f245-4367-872b-c5cc7b48841d"
+        )
+        .setImage("https://b.cdnst.net/images/share-logo.png")
+        .setFooter({ text: "⏳ This takes approximately 30 seconds." });
 
     await interaction.reply({ embeds: [waitingEmbed] });
 
     try {
-        // Dynamic import for Cloudflare speedtest
-        const { default: SpeedTest } = await import("@cloudflare/speedtest");
-
-        const speedTest = new SpeedTest({
-            autoStart: false,
-            measureDownloadLoadedLatency: true,
-            measureUploadLoadedLatency: true
+        const speedTest = new UniversalSpeedTest({
+            tests: {
+                measureDownload: true,
+                measureUpload: true
+            },
+            units: {
+                downloadUnit: SpeedUnits.Mbps,
+                uploadUnit: SpeedUnits.Mbps
+            }
         });
 
-        // Run the speedtest
-        await new Promise<void>((resolve, reject) => {
-            speedTest.onFinish = () => resolve();
-            speedTest.onError = (error: string) => reject(new Error(error));
-            speedTest.play();
-        });
+        const result = await speedTest.performOoklaTest();
+        const botPing = interaction.client.ws.ping;
 
-        const results = speedTest.results;
-        const summary = results.getSummary();
+        // Generate speedtest image
+        const imageData: SpeedtestData = {
+            downloadSpeed: result.downloadResult?.speed ?? 0,
+            uploadSpeed: result.uploadResult?.speed ?? 0,
+            latency: result.pingResult.latency,
+            jitter: result.pingResult.jitter,
+            totalTime: result.totalTime,
+            serverName: result.bestServer.name,
+            sponsor: result.bestServer.sponsor,
+            isp: result.client.isp,
+            country: result.client.country
+        };
 
-        // Get all available metrics
-        const downloadBandwidth = results.getDownloadBandwidth() ?? 0;
-        const uploadBandwidth = results.getUploadBandwidth() ?? 0;
-        const unloadedLatency = results.getUnloadedLatency() ?? 0;
-        const unloadedJitter = results.getUnloadedJitter() ?? 0;
-        const downLoadedLatency = results.getDownLoadedLatency() ?? 0;
-        const downLoadedJitter = results.getDownLoadedJitter() ?? 0;
-        const upLoadedLatency = results.getUpLoadedLatency() ?? 0;
-        const upLoadedJitter = results.getUpLoadedJitter() ?? 0;
-        const packetLoss = results.getPacketLoss();
-        const packetLossDetails = results.getPacketLossDetails();
-        const scores = results.getScores();
-
-        // Convert bandwidth to Mbps
-        const downloadMbps = (downloadBandwidth / 1_000_000).toFixed(2);
-        const uploadMbps = (uploadBandwidth / 1_000_000).toFixed(2);
+        const imageBuffer = generateSpeedtestImage(imageData, botPing);
+        const attachment = new AttachmentBuilder(imageBuffer, { name: "speedtest-result.png" });
 
         const finishEmbed = new EmbedBuilder()
             .setTitle(`🌐 ${interaction.client.user?.username} Speedtest`)
             .setColor(0x00ff00)
+            .setDescription(
+                [
+                    `**ISP:** ${result.client.isp}`,
+                    `**Location:** ${result.client.country}`,
+                    `**IP:** ${result.client.ip}`,
+                    `**Server:** ${result.bestServer.name} (${result.bestServer.sponsor})`,
+                    `**Server Location:** ${result.bestServer.country}`
+                ].join("\n")
+            )
             .addFields(
-                // Bandwidth
                 {
                     name: "📥 Download",
-                    value: `\`${downloadMbps} Mbps\``,
+                    value: `\`${result.downloadResult?.speed.toFixed(2) ?? "N/A"} Mbps\``,
                     inline: true
                 },
                 {
                     name: "📤 Upload",
-                    value: `\`${uploadMbps} Mbps\``,
+                    value: `\`${result.uploadResult?.speed.toFixed(2) ?? "N/A"} Mbps\``,
                     inline: true
                 },
                 {
                     name: "📊 Bot Ping",
-                    value: `\`${interaction.client.ws.ping}ms\``,
-                    inline: true
-                },
-                // Unloaded Latency
-                {
-                    name: "🔄 Idle Latency",
-                    value: `\`${unloadedLatency.toFixed(2)}ms\``,
+                    value: `\`${botPing}ms\``,
                     inline: true
                 },
                 {
-                    name: "📶 Idle Jitter",
-                    value: `\`${unloadedJitter.toFixed(2)}ms\``,
+                    name: "🔄 Latency",
+                    value: `\`${result.pingResult.latency.toFixed(2)}ms\``,
                     inline: true
                 },
                 {
-                    name: "📦 Packet Loss",
-                    value: packetLoss != null ? `\`${(packetLoss * 100).toFixed(2)}%\`` : "`N/A`",
-                    inline: true
-                },
-                // Loaded Latency (Download)
-                {
-                    name: "⬇️ Download Latency",
-                    value: `\`${downLoadedLatency.toFixed(2)}ms\``,
+                    name: "📶 Jitter",
+                    value: `\`${result.pingResult.jitter.toFixed(2)}ms\``,
                     inline: true
                 },
                 {
-                    name: "⬇️ Download Jitter",
-                    value: `\`${downLoadedJitter.toFixed(2)}ms\``,
-                    inline: true
-                },
-                {
-                    name: "\u200B",
-                    value: "\u200B",
-                    inline: true
-                },
-                // Loaded Latency (Upload)
-                {
-                    name: "⬆️ Upload Latency",
-                    value: `\`${upLoadedLatency.toFixed(2)}ms\``,
-                    inline: true
-                },
-                {
-                    name: "⬆️ Upload Jitter",
-                    value: `\`${upLoadedJitter.toFixed(2)}ms\``,
-                    inline: true
-                },
-                {
-                    name: "\u200B",
-                    value: "\u200B",
+                    name: "⏱️ Test Duration",
+                    value: `\`${result.totalTime.toFixed(2)}s\``,
                     inline: true
                 }
             )
-            .setThumbnail("https://www.cloudflare.com/img/cf-facebook-card.png")
-            .setFooter({ text: "Powered by Cloudflare Speed Test" })
+            .setImage("attachment://speedtest-result.png")
+            .setThumbnail(
+                "https://store-images.s-microsoft.com/image/apps.52586.13510798887693184.740d7baf-50aa-4e26-adec-ae739ac12068.c9ef9495-f245-4367-872b-c5cc7b48841d"
+            )
+            .setFooter({ text: "Powered by Ookla Speedtest" })
             .setTimestamp();
 
-        // Add AIM Scores if available
-        if (scores) {
-            const scoreText = [
-                `**Streaming:** ${scores.streaming?.points ?? "N/A"} (${scores.streaming?.classificationName ?? "N/A"})`,
-                `**Gaming:** ${scores.gaming?.points ?? "N/A"} (${scores.gaming?.classificationName ?? "N/A"})`,
-                `**RTC:** ${scores.rtc?.points ?? "N/A"} (${scores.rtc?.classificationName ?? "N/A"})`
-            ].join("\n");
-
+        // Add download details if available
+        if (result.downloadResult) {
             finishEmbed.addFields({
-                name: "🎮 AIM Scores",
-                value: scoreText,
+                name: "📥 Download Details",
+                value: [
+                    `Transferred: \`${(result.downloadResult.transferredBytes / 1_000_000).toFixed(2)} MB\``,
+                    `Latency: \`${result.downloadResult.latency.toFixed(2)}ms\``,
+                    `Jitter: \`${result.downloadResult.jitter.toFixed(2)}ms\``
+                ].join(" | "),
                 inline: false
             });
         }
 
-        // Add Packet Loss Details if available
-        if (packetLossDetails && "totalMessages" in packetLossDetails) {
-            const plDetails = [
-                `Total Messages: ${packetLossDetails.totalMessages}`,
-                `Sent: ${packetLossDetails.numMessagesSent}`,
-                `Lost: ${packetLossDetails.lostMessages.length}`
-            ].join(" | ");
-
+        // Add upload details if available
+        if (result.uploadResult) {
             finishEmbed.addFields({
-                name: "📦 Packet Loss Details",
-                value: `\`${plDetails}\``,
+                name: "📤 Upload Details",
+                value: [
+                    `Transferred: \`${(result.uploadResult.transferredBytes / 1_000_000).toFixed(2)} MB\``,
+                    `Latency: \`${result.uploadResult.latency.toFixed(2)}ms\``,
+                    `Jitter: \`${result.uploadResult.jitter.toFixed(2)}ms\``
+                ].join(" | "),
                 inline: false
             });
         }
 
-        // Add Summary
-        if (summary && summary.download != null && summary.upload != null) {
-            finishEmbed.setDescription(
-                `**Download:** ${(summary.download / 1_000_000).toFixed(2)} Mbps | **Upload:** ${(summary.upload / 1_000_000).toFixed(2)} Mbps | **Latency:** ${summary.latency?.toFixed(2) ?? "N/A"}ms`
-            );
-        }
-
-        await interaction.editReply({ embeds: [finishEmbed] });
+        await interaction.editReply({ embeds: [finishEmbed], files: [attachment] });
     } catch (error) {
         console.error("Speedtest error:", error);
 

@@ -18,11 +18,12 @@
         "typescript": "^5.9.3"
     },
     "dependencies": {
-        "@cloudflare/speedtest": "^1.7.0",
+        "@napi-rs/canvas": "^0.1.89",
         "axios": "^1.13.4",
         "discord.js": "^14.25.1",
         "mongoose": "^9.1.5",
-        "node-cron": "^4.2.1"
+        "node-cron": "^4.2.1",
+        "universal-speedtest": "^3.0.0"
     },
     "prettier": {
         "tabWidth": 4,
