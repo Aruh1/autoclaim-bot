@@ -21,19 +21,26 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
                 value: [
                     "`/claim` - Claim manual semua reward",
                     "`/claim hoyolab` - Claim Hoyolab saja",
-                    "`/claim endfield` - Claim Endfield saja"
+                    "`/claim endfield` - Claim Endfield saja",
+                    "`/redeem <game> <code>` - Redeem code game"
                 ].join("\n"),
                 inline: false
             },
             {
                 name: "📊 Info Commands",
-                value: ["`/status` - Lihat status token & riwayat claim", "`/ping` - Cek latency bot"].join("\n"),
+                value: [
+                    "`/status` - Lihat status token & riwayat claim",
+                    "`/statistic` - Lihat statistik claim keseluruhan",
+                    "`/ping` - Cek latency bot",
+                    "`/speedtest` - Test kecepatan network bot"
+                ].join("\n"),
                 inline: false
             },
             {
                 name: "⚙️ Settings Commands",
                 value: [
                     "`/settings notify true/false` - Toggle notifikasi DM",
+                    "`/embed-settings` - Kustomisasi tampilan embed",
                     "`/remove all/hoyolab/endfield` - Hapus token"
                 ].join("\n"),
                 inline: false
@@ -49,8 +56,16 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
                     "1. Buka https://www.hoyolab.com dan login",
                     "2. Tekan F12 → **Application** → **Cookies**",
                     "3. Klik `.hoyolab.com`",
-                    "4. Copy nilai dari `ltoken_v2` dan `ltuid_v2`",
-                    "5. Format: `ltoken_v2=xxx; ltuid_v2=xxx`",
+                    "4. Copy nilai dari cookie berikut:",
+                    "",
+                    "**Required cookies:**",
+                    "• `ltoken_v2` - Token autentikasi utama",
+                    "• `ltuid_v2` - User ID Hoyolab",
+                    "",
+                    "**Optional (untuk /redeem):**",
+                    "• `cookie_token_v2` - Token untuk redeem code",
+                    "",
+                    "Format: `ltoken_v2=xxx; ltuid_v2=xxx; cookie_token_v2=xxx`",
                     "",
                     "⚠️ *Cookie HttpOnly, harus copy manual dari tab Application*"
                 ].join("\n"),
