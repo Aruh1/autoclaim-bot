@@ -136,24 +136,20 @@ function parseApiData(json: { nodes?: { data?: unknown[] }[] }): AnimeEntry[] {
         const animeIndices = data[1] as number[];
         if (!Array.isArray(animeIndices)) return [];
 
-        // Template object at index 2
-        const template = data[2] as Record<string, number>;
-        if (!template) return [];
-
         for (const idx of animeIndices) {
             const entry = data[idx] as Record<string, number>;
             if (!entry) continue;
 
             const anime: AnimeEntry = {
-                id: getValue(data, entry.id) as number,
-                mal_id: getValue(data, entry.mal_id) as number,
-                title: getValue(data, entry.title) as string,
-                title_english: getValue(data, entry.title_english) as string | null,
-                title_japanese: getValue(data, entry.title_japanese) as string | null,
-                image_url: getValue(data, entry.image_url) as string,
-                notes: getValue(data, entry.notes) as string | null,
-                created_at: getValue(data, entry.created_at) as string,
-                updated_at: getValue(data, entry.updated_at) as string,
+                id: resolveValue(data, entry.id) as number,
+                mal_id: resolveValue(data, entry.mal_id) as number,
+                title: resolveValue(data, entry.title) as string,
+                title_english: resolveValue(data, entry.title_english) as string | null,
+                title_japanese: resolveValue(data, entry.title_japanese) as string | null,
+                image_url: resolveValue(data, entry.image_url) as string,
+                notes: resolveValue(data, entry.notes) as string | null,
+                created_at: resolveValue(data, entry.created_at) as string,
+                updated_at: resolveValue(data, entry.updated_at) as string,
                 releases: [],
                 alternatives: [],
                 unmuxed: [],
@@ -161,19 +157,29 @@ function parseApiData(json: { nodes?: { data?: unknown[] }[] }): AnimeEntry[] {
             };
 
             // Parse releases
-            const releaseIndices = getValue(data, entry.releases);
+            const releaseIndices = resolveValue(data, entry.releases);
             if (Array.isArray(releaseIndices)) {
                 for (const relIdx of releaseIndices) {
                     const relEntry = data[relIdx as number] as Record<string, number>;
                     if (!relEntry) continue;
 
+                    // Get download_links - it's an array of indices pointing to actual URLs
+                    const downloadLinksIndices = resolveValue(data, relEntry.download_links);
+                    let downloadLinks: string[] | null = null;
+
+                    if (Array.isArray(downloadLinksIndices)) {
+                        downloadLinks = downloadLinksIndices
+                            .map(linkIdx => resolveValue(data, linkIdx as number))
+                            .filter((link): link is string => typeof link === "string");
+                    }
+
                     const release: AnimeRelease = {
-                        id: getValue(data, relEntry.id) as number,
-                        name: getValue(data, relEntry.name) as string,
-                        anime_id: getValue(data, relEntry.anime_id) as number,
-                        created_at: getValue(data, relEntry.created_at) as string,
-                        description: getValue(data, relEntry.description) as string | null,
-                        download_links: getValue(data, relEntry.download_links) as string[] | null
+                        id: resolveValue(data, relEntry.id) as number,
+                        name: resolveValue(data, relEntry.name) as string,
+                        anime_id: resolveValue(data, relEntry.anime_id) as number,
+                        created_at: resolveValue(data, relEntry.created_at) as string,
+                        description: resolveValue(data, relEntry.description) as string | null,
+                        download_links: downloadLinks
                     };
                     anime.releases.push(release);
                 }
@@ -188,7 +194,8 @@ function parseApiData(json: { nodes?: { data?: unknown[] }[] }): AnimeEntry[] {
     return animeList;
 }
 
-function getValue(data: unknown[], index: number | undefined): unknown {
+function resolveValue(data: unknown[], index: number | undefined): unknown {
     if (index === undefined || index === null) return null;
-    return data[index];
+    const value = data[index];
+    return value;
 }
