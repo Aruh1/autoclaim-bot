@@ -17,8 +17,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
     const tokenInput = new TextInputBuilder()
         .setCustomId("endfield-token")
-        .setLabel("Account Token (dari Local Storage)")
-        .setPlaceholder("F12 > Application > Local Storage > skport.com > account_token")
+        .setLabel("SK_OAUTH_CRED_KEY (from Cookie)")
+        .setPlaceholder("F12 > Application > Cookies > game.skport.com > SK_OAUTH_CRED_KEY")
         .setStyle(TextInputStyle.Paragraph)
         .setRequired(true)
         .setMinLength(20);

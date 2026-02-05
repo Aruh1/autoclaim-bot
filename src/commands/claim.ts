@@ -52,9 +52,9 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     }
 
     // Claim Endfield
-    if ((service === "all" || service === "endfield") && user.endfield?.accountToken) {
+    if ((service === "all" || service === "endfield") && user.endfield?.skOAuthCredKey) {
         const endfieldService = new EndfieldService({
-            accountToken: user.endfield.accountToken,
+            cred: user.endfield.skOAuthCredKey,
             gameId: user.endfield.gameId,
             server: user.endfield.server
         });

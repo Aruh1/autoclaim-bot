@@ -74,21 +74,27 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
             {
                 name: "🎮 Endfield Token",
                 value: [
-                    "1. Buka https://www.skport.com dan login",
-                    "2. Tekan F12 → **Application** → **Local Storage**",
-                    "3. Klik `https://www.skport.com`",
-                    "4. Copy nilai dari key `account_token`"
+                    "1. Buka https://game.skport.com dan login",
+                    "2. Tekan F12 → **Console**",
+                    "3. Paste dan jalankan script berikut:"
                 ].join("\n"),
+                inline: false
+            },
+            {
+                name: "📋 getEndfield.js Script",
+                value:
+                    "```js\n" +
+                    'function gc(n){const v=`; ${document.cookie}`;const p=v.split(`; ${n}=`);if(p.length===2)return decodeURIComponent(p.pop().split(";").shift())}\n' +
+                    'console.log("SK_OAUTH_CRED_KEY:",gc("SK_OAUTH_CRED_KEY"));console.log("UID:",gc("GAME_UID"));console.log("Server:",gc("HG_INFO")?.match(/"sid":"(\\d+)"/)?.[1]||"2")\n' +
+                    "```",
                 inline: false
             },
             {
                 name: "📝 Endfield Setup Info",
                 value: [
-                    "• **Account Token**: nilai dari Local Storage di atas",
-                    "• **Game UID**: buka profil in-game, copy angka UID",
-                    "• **Server**: 2 = Asia, 3 = Americas/Europe",
-                    "",
-                    "⚠️ *Token akan auto-refresh setiap 25 menit*"
+                    "• **Token**: SK_OAUTH_CRED_KEY dari script",
+                    "• **Game UID**: UID dari script atau profil in-game",
+                    "• **Server**: 2 = Asia, 3 = Americas/Europe"
                 ].join("\n"),
                 inline: false
             },
