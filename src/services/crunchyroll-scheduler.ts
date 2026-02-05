@@ -15,6 +15,27 @@ let isFirstRun = true;
 // Crunchyroll orange color
 const CRUNCHYROLL_COLOR = 0xf47521;
 
+// Language code to display name mapping
+const LANG_MAP: Record<string, string> = {
+    "en-US": "English",
+    "ja-JP": "Japanese",
+    "id-ID": "Indonesian",
+    "ms-MY": "Malay",
+    "de-DE": "German",
+    "es-LA": "Spanish (LA)",
+    "es-ES": "Spanish",
+    "es-419": "Spanish",
+    "fr-FR": "French",
+    "it-IT": "Italian",
+    "pt-BR": "Portuguese (BR)",
+    "ru-RU": "Russian",
+    "ar-SA": "Arabic",
+    "zh-CN": "Mandarin",
+    "zh-HK": "Cantonese",
+    "ko-KR": "Korean",
+    "th-TH": "Thai"
+};
+
 export function startCrunchyrollFeed(client: Client): void {
     console.log("📺 Starting Crunchyroll feed scheduler...");
 
@@ -140,7 +161,7 @@ function buildEpisodeEmbed(episode: FormattedEpisode): EmbedBuilder {
         },
         {
             name: "Version",
-            value: episode.audioLocale,
+            value: LANG_MAP[episode.audioLocale] || episode.audioLocale,
             inline: true
         },
         {
