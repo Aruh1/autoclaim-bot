@@ -114,4 +114,5 @@ export interface FormattedEpisode {
     subtitles: string;
     releasedAt: Date;
     publisher?: string;
+    seriesPoster?: string;
 }

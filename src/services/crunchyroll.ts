@@ -217,6 +217,9 @@ export class CrunchyrollService {
         return formatted;
     }
 
+    // Series poster cache: seriesId -> posterUrl
+    private static seriesCache: Map<string, string> = new Map();
+
     // RSS publisher cache: mediaId -> publisher
     private static publisherCache: Map<string, string> = new Map();
     private static rssCacheTime = 0;
@@ -301,6 +304,76 @@ export class CrunchyrollService {
                 if (publisher) {
                     return { ...ep, publisher };
                 }
+            }
+            return ep;
+        });
+    }
+
+    /**
+     * Get series poster (tall) by series ID
+     */
+    async getSeriesPoster(seriesId: string): Promise<string | undefined> {
+        if (!seriesId) return undefined;
+
+        // Check cache first
+        if (CrunchyrollService.seriesCache.has(seriesId)) {
+            return CrunchyrollService.seriesCache.get(seriesId);
+        }
+
+        const auth = await this.getAuth();
+        if (!auth) return undefined;
+
+        try {
+            const response = await fetch(`${this.API_BASE}/content/v2/cms/objects/${seriesId}`, {
+                headers: {
+                    Authorization: `Bearer ${auth.access_token}`,
+                    "User-Agent": this.USER_AGENT
+                }
+            });
+
+            if (!response.ok) {
+                console.error(`Failed to fetch series ${seriesId}:`, response.status);
+                return undefined;
+            }
+
+            const data = (await response.json()) as any;
+            const images = data?.data?.[0]?.images?.poster_tall; // Array of arrays of images
+
+            if (images && images.length > 0) {
+                // Get the largest image from the last array group (usually highest quality)
+                const imageGroup = images[images.length - 1];
+                if (imageGroup && imageGroup.length > 0) {
+                    // Sort by height descending just to be sure
+                    const sorted = imageGroup.sort((a: any, b: any) => b.height - a.height);
+                    // Prefer height around 400-800 for Discord thumbnail, but largest is usually fine
+                    const poster = sorted[0]?.source;
+                    if (poster) {
+                        CrunchyrollService.seriesCache.set(seriesId, poster);
+                        return poster;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error(`Error fetching series poster for ${seriesId}:`, error);
+        }
+
+        return undefined;
+    }
+
+    /**
+     * Enrich episodes with series posters
+     */
+    async enrichWithSeriesPoster(episodes: FormattedEpisode[]): Promise<FormattedEpisode[]> {
+        // Collect unique series IDs
+        const seriesIds = [...new Set(episodes.map(ep => ep.seriesId))];
+
+        // Fetch posters in parallel (with limit if needed, but usually fine for small batches)
+        await Promise.all(seriesIds.map(id => this.getSeriesPoster(id)));
+
+        return episodes.map(ep => {
+            const poster = CrunchyrollService.seriesCache.get(ep.seriesId);
+            if (poster) {
+                return { ...ep, seriesPoster: poster };
             }
             return ep;
         });

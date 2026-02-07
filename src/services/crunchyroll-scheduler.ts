@@ -75,7 +75,10 @@ async function checkForNewEpisodes(client: Client, service: CrunchyrollService):
 
         if (newEpisodes.length === 0) return;
 
-        console.log(`📺 Found ${newEpisodes.length} new Crunchyroll episode(s)`);
+        // Enrich with series posters
+        const enrichedEpisodes = await service.enrichWithSeriesPoster(newEpisodes);
+
+        console.log(`📺 Found ${enrichedEpisodes.length} new Crunchyroll episode(s)`);
 
         // Get all guilds with Crunchyroll feed enabled
         const guilds = await GuildSettings.find({
@@ -91,13 +94,13 @@ async function checkForNewEpisodes(client: Client, service: CrunchyrollService):
                 const channel = await client.channels.fetch(guild.crunchyrollFeed.channelId!);
                 if (!channel || !(channel instanceof TextChannel)) continue;
 
-                // Send each new episode (limit to 5 per cycle to avoid spam)
-                for (const episode of newEpisodes.slice(0, 5)) {
+                // Send each new episode (limit to 10 per cycle to avoid spam)
+                for (const episode of enrichedEpisodes.slice(0, 10)) {
                     const embed = buildEpisodeEmbed(episode);
                     await channel.send({ embeds: [embed] });
 
                     // Small delay between messages
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             } catch (error) {
                 console.error(`Failed to send to guild ${guild.guildId}:`, error);
@@ -122,7 +125,10 @@ function buildEpisodeEmbed(episode: FormattedEpisode): EmbedBuilder {
         .setDescription(episode.description.slice(0, 200) + (episode.description.length > 200 ? "..." : ""))
         .setTimestamp(episode.releasedAt);
 
-    // Add thumbnail
+    // Add thumbnail and image
+    if (episode.seriesPoster) {
+        embed.setThumbnail(episode.seriesPoster);
+    }
     if (episode.thumbnail) {
         embed.setImage(episode.thumbnail);
     }
