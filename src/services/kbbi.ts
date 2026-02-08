@@ -8,8 +8,9 @@ const extractDefinitions = ($: cheerio.CheerioAPI, selector: string): string[] =
     $(selector).each((_, el) => {
         const $el = $(el);
         let label = "";
+        let example = "";
 
-        // Capture labels from red font tags (e.g., 'n', 'v', 'p')
+        // Capture labels from red font tags
         const redFonts = $el.find("font[color='red']");
         if (redFonts.length > 0) {
             label = redFonts
@@ -30,13 +31,32 @@ const extractDefinitions = ($: cheerio.CheerioAPI, selector: string): string[] =
             label = label ? `${label} ${spanLabel}` : spanLabel;
         }
 
+        // Capture examples from grey font tags
+        const greyFonts = $el.find("font[color='grey']");
+        if (greyFonts.length > 0) {
+            example = greyFonts
+                .map((_, f) => $(f).text().trim())
+                .get()
+                .filter(t => t.length > 0)
+                .join(" "); // Sometimes there are multiple parts?
+        }
+
         // Remove ALL font tags (including grey examples) and span.kelas
         $el.find("font").remove();
         $el.find("span.kelas").remove();
 
         const defText = $el.text().trim();
         if (defText) {
-            const fullDef = label ? `_(${label})_ ${defText}` : defText;
+            let fullDef = defText;
+
+            if (label) {
+                fullDef = `*${label}* ${fullDef}`;
+            }
+
+            if (example) {
+                fullDef = `${fullDef} \`${example}\``;
+            }
+
             definitions.push(fullDef);
         }
     });
