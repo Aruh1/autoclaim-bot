@@ -82,7 +82,7 @@ const extractDefinitions = ($: cheerio.CheerioAPI, selector: string): string[] =
             }
 
             if (example) {
-                fullDef = `${fullDef}\n> \`${example}\``;
+                fullDef = `${fullDef}\n> ${example}`;
             }
 
             definitions.push(fullDef);

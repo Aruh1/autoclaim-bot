@@ -23,9 +23,16 @@ export async function execute(interaction: any) {
 
         const embed = new EmbedBuilder()
             .setColor("#00a2e8")
-            .setTitle(`KBBI: ${result.lemma}`)
+            .setTitle(result.lemma)
             .setURL(`${KBBI_BASE_URL}${encodeURIComponent(word)}`)
-            .setFooter({ text: "Sumber: KBBI Daring Kemdikbud" });
+            .setAuthor({
+                name: "KBBI Daring Kemendikdasmen",
+                url: KBBI_BASE_URL
+            })
+            .setFooter({
+                text: "Sumber: KBBI Daring Kemendikdasmen"
+            })
+            .setTimestamp();
 
         let description = "";
 
