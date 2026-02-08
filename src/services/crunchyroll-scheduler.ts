@@ -186,13 +186,6 @@ function buildEpisodeEmbed(episode: FormattedEpisode): EmbedBuilder {
         }
     );
 
-    // Subtitles
-    embed.addFields({
-        name: "Subtitles",
-        value: episode.subtitles,
-        inline: false
-    });
-
     // External Links (2 Columns)
     if (episode.externalLinks) {
         const { mal, anilist } = episode.externalLinks;
@@ -214,6 +207,13 @@ function buildEpisodeEmbed(episode: FormattedEpisode): EmbedBuilder {
             embed.addFields({ name: "Anilist", value: "-", inline: true });
         }
     }
+
+    // Subtitles
+    embed.addFields({
+        name: "Subtitles",
+        value: episode.subtitles,
+        inline: false
+    });
 
     // Footer
     embed.setFooter({
