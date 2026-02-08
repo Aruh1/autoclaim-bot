@@ -1,19 +1,54 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
+import type { KbbiResult } from "../types/kbbi";
+import { KBBI_BASE_URL, KBBI_USER_AGENT } from "../constants/kbbi";
 
-export interface KbbiResult {
-    lemma: string;
-    definitions: string[];
-    tesaurusLink?: string;
-}
+const extractDefinitions = ($: cheerio.CheerioAPI, selector: string): string[] => {
+    const definitions: string[] = [];
+    $(selector).each((_, el) => {
+        const $el = $(el);
+        let label = "";
+
+        // Capture labels from red font tags (e.g., 'n', 'v', 'p')
+        const redFonts = $el.find("font[color='red']");
+        if (redFonts.length > 0) {
+            label = redFonts
+                .map((_, f) => $(f).text().trim())
+                .get()
+                .filter(t => t.length > 0)
+                .join(" ");
+        }
+
+        // Also check for span with class 'kelas'
+        const spanTags = $el.find("span.kelas");
+        if (spanTags.length > 0) {
+            const spanLabel = spanTags
+                .map((_, s) => $(s).text().trim())
+                .get()
+                .filter(t => t.length > 0)
+                .join(" ");
+            label = label ? `${label} ${spanLabel}` : spanLabel;
+        }
+
+        // Remove ALL font tags (including grey examples) and span.kelas
+        $el.find("font").remove();
+        $el.find("span.kelas").remove();
+
+        const defText = $el.text().trim();
+        if (defText) {
+            const fullDef = label ? `_(${label})_ ${defText}` : defText;
+            definitions.push(fullDef);
+        }
+    });
+    return definitions;
+};
 
 export const searchKbbi = async (word: string): Promise<KbbiResult | null> => {
     try {
-        const url = `https://kbbi.kemendikdasmen.go.id/entri/${encodeURIComponent(word)}`;
+        const url = `${KBBI_BASE_URL}${encodeURIComponent(word)}`;
         const response = await axios.get(url, {
             headers: {
-                "User-Agent":
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                "User-Agent": KBBI_USER_AGENT
             }
         });
 
@@ -26,58 +61,14 @@ export const searchKbbi = async (word: string): Promise<KbbiResult | null> => {
 
         const definitions: string[] = [];
 
-        // Get definitions from ol > li
-        $("ol li").each((_, el) => {
-            // Remove font tags (usually red classification codes like 'v', 'n') to clean up
-            $(el).find("font").remove();
-            definitions.push($(el).text().trim());
-        });
+        definitions.push(...extractDefinitions($, "ol li"));
+        definitions.push(...extractDefinitions($, "ul.adjusted-par li"));
 
-        // Get definitions from ul.adjusted-par > li (sometimes used for single definitions or specific layouts)
-        $("ul.adjusted-par li").each((_, el) => {
-            $(el).find("font").remove();
-            definitions.push($(el).text().trim());
-        });
-
-        // If no definitions found yet, try checking if there are direct paragraphs under h2's container or similar structure
-        // But following the PHP repo:
-        // $olElement = $xpath->query("following-sibling::ol[1]", $h2Element)->item(0);
-        // $ulElement = $xpath->query("following-sibling::ul[@class='adjusted-par'][1]", $h2Element)->item(0);
-
-        // Check for Tesaurus link
-        // $tesaurusAnchor = $xpath->query("following-sibling::p[1]/a[contains(@href, 'tematis/lema')]", $h2Element)->item(0);
-        let tesaurusLink: string | undefined;
-
-        // Find the 'h2' and look for siblings
-        const h2 = $("h2").first();
-        const nextP = h2.nextAll("p").first();
-        const tesaurusAnchor = nextP.find("a[href*='tematis/lema']");
-
-        if (tesaurusAnchor.length > 0) {
-            tesaurusLink = tesaurusAnchor.attr("href");
-        } else {
-            // Fallback from PHP repo: "http://tesaurus.kemendikdasmen.go.id/tematis/lema/" . $lema;
-            // But we might verify if it actually exists or just let user click
-            // The PHP repo logic adds it if not found, but let's stick to what we find for now or add generic if requested.
-            // The PHP repo implementation:
-            // } else { $tesaurusLink = "http://tesaurus.kemendikdasmen.go.id/tematis/lema/" . $lema; }
-            // We can check if status 200 later, but for now let's optionalize it.
-            tesaurusLink = `http://tesaurus.kemendikdasmen.go.id/tematis/lema/${encodeURIComponent(word)}`;
-        }
-
-        // Clean definitions of empty strings
         const cleanedDefinitions = definitions.filter(d => d.length > 0);
-
-        if (cleanedDefinitions.length === 0) {
-            // Sometimes the definition is just in a p tag if it's not a list?
-            // The KBBI site usually uses OL/UL.
-            // Let's verify with a real check if possible, but this covers 99% cases.
-        }
 
         return {
             lemma,
-            definitions: cleanedDefinitions,
-            tesaurusLink
+            definitions: cleanedDefinitions
         };
     } catch (error) {
         console.error(`Error fetching KBBI for ${word}:`, error);

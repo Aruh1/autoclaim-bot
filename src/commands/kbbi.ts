@@ -1,5 +1,6 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { searchKbbi } from "../services/kbbi";
+import { KBBI_BASE_URL } from "../constants/kbbi";
 
 export const data = new SlashCommandBuilder()
     .setName("kbbi")
@@ -23,7 +24,7 @@ export async function execute(interaction: any) {
         const embed = new EmbedBuilder()
             .setColor("#00a2e8")
             .setTitle(`KBBI: ${result.lemma}`)
-            .setURL(`https://kbbi.kemendikdasmen.go.id/entri/${encodeURIComponent(word)}`)
+            .setURL(`${KBBI_BASE_URL}${encodeURIComponent(word)}`)
             .setFooter({ text: "Sumber: KBBI Daring Kemdikbud" });
 
         if (result.definitions.length > 0) {
@@ -32,16 +33,7 @@ export async function execute(interaction: any) {
             embed.setDescription("Tidak ada definisi ditemukan.");
         }
 
-        const components: any[] = [];
-
-        if (result.tesaurusLink) {
-            const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-                new ButtonBuilder().setLabel("Cek Tesaurus").setStyle(ButtonStyle.Link).setURL(result.tesaurusLink)
-            );
-            components.push(row);
-        }
-
-        await interaction.editReply({ embeds: [embed], components });
+        await interaction.editReply({ embeds: [embed] });
     } catch (error) {
         console.error("KBBI Command Error:", error);
         await interaction.editReply({ content: "Terjadi kesalahan saat mencari kata di KBBI." });
