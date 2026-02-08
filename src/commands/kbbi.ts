@@ -27,11 +27,19 @@ export async function execute(interaction: any) {
             .setURL(`${KBBI_BASE_URL}${encodeURIComponent(word)}`)
             .setFooter({ text: "Sumber: KBBI Daring Kemdikbud" });
 
-        if (result.definitions.length > 0) {
-            embed.setDescription(result.definitions.map((def, index) => `${index + 1}. ${def}`).join("\n"));
-        } else {
-            embed.setDescription("Tidak ada definisi ditemukan.");
+        let description = "";
+
+        if (result.otherDetails && result.otherDetails.length > 0) {
+            description += `*${result.otherDetails.join("\n")}*\n\n`;
         }
+
+        if (result.definitions.length > 0) {
+            description += result.definitions.map((def, index) => `${index + 1}. ${def}`).join("\n");
+        } else {
+            description += "Tidak ada definisi ditemukan.";
+        }
+
+        embed.setDescription(description);
 
         await interaction.editReply({ embeds: [embed] });
     } catch (error) {

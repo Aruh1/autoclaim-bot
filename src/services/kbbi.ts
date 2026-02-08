@@ -53,7 +53,30 @@ export const searchKbbi = async (word: string): Promise<KbbiResult | null> => {
         });
 
         const $ = cheerio.load(response.data);
-        const lemma = $("h2").first().text().trim();
+        const $h2 = $("h2").first();
+
+        // Remove 'sup' tags (like footnotes) which might interfere
+        $h2.find("sup").remove();
+
+        let lemma = $h2.clone().children().remove().end().text().trim();
+        const otherDetails: string[] = [];
+
+        // Check for small tags inside h2 (e.g., "bentuk tidak baku: ...")
+        $h2.find("small").each((_, el) => {
+            otherDetails.push($(el).text().trim());
+        });
+
+        // If lemma is empty (maybe structure is different), fallback to full text but try to exclude small
+        if (!lemma) {
+            const fullText = $h2.text().trim();
+            // If we have extracted other details, remove them from fullText?
+            // It's safer to just take everything if the split failed, but let's try:
+            lemma = fullText;
+            // Remove known other details from lemma string if possible?
+            for (const detail of otherDetails) {
+                lemma = lemma.replace(detail, "").trim();
+            }
+        }
 
         if (!lemma) {
             return null;
@@ -68,6 +91,7 @@ export const searchKbbi = async (word: string): Promise<KbbiResult | null> => {
 
         return {
             lemma,
+            otherDetails,
             definitions: cleanedDefinitions
         };
     } catch (error) {
