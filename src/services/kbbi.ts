@@ -45,6 +45,34 @@ const extractDefinitions = ($: cheerio.CheerioAPI, selector: string): string[] =
         $el.find("font").remove();
         $el.find("span.kelas").remove();
 
+        // Check for links (<a> tags) and convert to markdown
+        // e.g. <a href="../../entri/bagaimana">bagaimana</a> -> [bagaimana](https://kbbi.kemendikdasmen.go.id/entri/bagaimana)
+        $el.find("a").each((_, a) => {
+            const $a = $(a);
+            const href = $a.attr("href");
+            const text = $a.text().trim();
+            if (href && text) {
+                // Construct full URL. HREFs are like "../../entri/bagaimana"
+                // We want to be careful with paths.
+                let fullUrl = href;
+                if (!href.startsWith("http")) {
+                    // Normalize path. If it starts with "../../", replace it or just append to base?
+                    // KBBI_BASE_URL is "https://kbbi.kemendikdasmen.go.id/entri/"
+                    // href might be "../../entri/bagaimana" which resolves to "https://kbbi.../entri/bagaimana"
+                    // Or "bagaimana" (relative).
+                    // Simplest: extract the word after "entri/" if present, or just use the word text?
+                    const match = href.match(/entri\/(.+)$/);
+                    if (match) {
+                        fullUrl = `${KBBI_BASE_URL}${match[1]}`;
+                    } else {
+                        // Fallback?
+                        fullUrl = `${KBBI_BASE_URL}${text}`;
+                    }
+                }
+                $a.replaceWith(`[${text}](${fullUrl})`);
+            }
+        });
+
         const defText = $el.text().trim();
         if (defText) {
             let fullDef = defText;
@@ -54,7 +82,7 @@ const extractDefinitions = ($: cheerio.CheerioAPI, selector: string): string[] =
             }
 
             if (example) {
-                fullDef = `${fullDef} \`${example}\``;
+                fullDef = `${fullDef}\n> \`${example}\``;
             }
 
             definitions.push(fullDef);
