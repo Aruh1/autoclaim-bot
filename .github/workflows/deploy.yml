@@ -45,6 +45,19 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v6
+
+            - name: Copy docker-compose.yml to Server
+              uses: appleboy/scp-action@master
+              with:
+                  host: ${{ secrets.DEPLOY_SSH_HOST }}
+                  username: ${{ secrets.DEPLOY_SSH_USERNAME }}
+                  key: ${{ secrets.DEPLOY_SSH_KEY }}
+                  port: ${{ secrets.DEPLOY_SSH_PORT }}
+                  source: "docker-compose.yml"
+                  target: ${{ secrets.DEPLOY_SSH_PATH }}
+
             - name: Deploy to Server
               uses: appleboy/ssh-action@master
               env:
@@ -77,11 +90,8 @@ jobs:
                       # Pull latest image
                       docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
-                      # Stop old container
-                      docker compose down || true
-
-                      # Start new container
-                      docker compose up -d
+                      # Start container using the copied docker-compose.yml
+                      docker compose up -d --remove-orphans
 
                       # Wait for startup
                       sleep 5
