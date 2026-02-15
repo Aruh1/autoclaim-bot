@@ -10,9 +10,22 @@ import { LANG_MAP, CRUNCHYROLL_COLOR, CRUNCHYROLL_POLL_INTERVAL } from "../const
 import { AnimeMetadataService } from "./anime-metadata";
 import type { FormattedEpisode } from "../types/crunchyroll";
 
-// Cache of last seen episode IDs (in-memory)
+// Cache of last seen episode IDs (in-memory, capped to prevent memory leak)
+const MAX_SEEN_EPISODES = 500;
 const seenEpisodes = new Set<string>();
 let isFirstRun = true;
+
+/** Prune oldest entries when the set exceeds MAX_SEEN_EPISODES */
+function pruneSeenEpisodes(): void {
+    if (seenEpisodes.size <= MAX_SEEN_EPISODES) return;
+    const excess = seenEpisodes.size - MAX_SEEN_EPISODES;
+    let removed = 0;
+    for (const id of seenEpisodes) {
+        if (removed >= excess) break;
+        seenEpisodes.delete(id);
+        removed++;
+    }
+}
 
 export function startCrunchyrollFeed(client: Client): void {
     console.log("📺 Starting Crunchyroll feed scheduler...");
@@ -41,6 +54,7 @@ async function initializeCache(service: CrunchyrollService): Promise<void> {
         for (const ep of episodes) {
             seenEpisodes.add(ep.id);
         }
+        pruneSeenEpisodes();
 
         console.log(`📺 Cached ${seenEpisodes.size} episodes`);
         isFirstRun = false;
@@ -70,6 +84,7 @@ async function checkForNewEpisodes(client: Client, service: CrunchyrollService):
                 }
             }
         }
+        pruneSeenEpisodes();
 
         if (newEpisodes.length === 0) return;
 

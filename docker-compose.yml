@@ -21,10 +21,10 @@ services:
         deploy:
             resources:
                 limits:
-                    memory: 256M
+                    memory: 512M
                     cpus: 2
                 reservations:
-                    memory: 128M
+                    memory: 256M
 
         # Volumes untuk persistent data
         volumes:

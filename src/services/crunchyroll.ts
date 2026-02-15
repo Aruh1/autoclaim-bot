@@ -232,13 +232,26 @@ export class CrunchyrollService {
         return formatted;
     }
 
-    // Series poster cache: seriesId -> posterUrl
+    // Series poster cache: seriesId -> posterUrl (capped)
+    private static readonly MAX_SERIES_CACHE = 200;
     private static seriesCache: Map<string, string> = new Map();
 
-    // RSS publisher cache: mediaId -> publisher
+    // RSS publisher cache: mediaId -> publisher (replaced on each fetch, no cap needed)
     private static publisherCache: Map<string, string> = new Map();
     private static rssCacheTime = 0;
     private static readonly RSS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+    /** Prune seriesCache when it exceeds limit (evict oldest entries) */
+    private static pruneSeriesCache(): void {
+        if (CrunchyrollService.seriesCache.size <= CrunchyrollService.MAX_SERIES_CACHE) return;
+        const excess = CrunchyrollService.seriesCache.size - CrunchyrollService.MAX_SERIES_CACHE;
+        let removed = 0;
+        for (const key of CrunchyrollService.seriesCache.keys()) {
+            if (removed >= excess) break;
+            CrunchyrollService.seriesCache.delete(key);
+            removed++;
+        }
+    }
 
     /**
      * Fetch publisher info from RSS feed
@@ -266,6 +279,9 @@ export class CrunchyrollService {
             }
 
             const xml = await response.text();
+
+            // Clear old cache before re-populating
+            CrunchyrollService.publisherCache.clear();
 
             // Simple regex parsing for publisher and mediaId
             const itemRegex = /<item>([\s\S]*?)<\/item>/g;
@@ -364,6 +380,7 @@ export class CrunchyrollService {
                     const poster = sorted[0]?.source;
                     if (poster) {
                         CrunchyrollService.seriesCache.set(seriesId, poster);
+                        CrunchyrollService.pruneSeriesCache();
                         return poster;
                     }
                 }
