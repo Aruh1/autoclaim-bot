@@ -134,15 +134,10 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         }
     } catch (error) {
         console.error("U2 feed command failed:", error);
-        const payload = {
+        const reply = (interaction.deferred ? interaction.editReply : interaction.reply) as any;
+        await reply.call(interaction, {
             content: "❌ Terjadi kesalahan saat memproses perintah.",
             ephemeral: true
-        };
-
-        if (interaction.deferred) {
-            await interaction.editReply(payload);
-        } else {
-            await interaction.reply(payload);
-        }
+        });
     }
 }

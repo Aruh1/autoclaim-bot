@@ -38,20 +38,23 @@ export function startU2Feed(client: Client): void {
     }
 
     console.log("📦 Starting U2 BDMV feed scheduler...");
-
     const service = new U2FeedService();
 
-    // Initial fetch to populate cache
-    initializeCache(service, feedUrl);
+    // Setup first run after a small delay to avoid blocking startup
+    setTimeout(() => {
+        initializeCache(service, feedUrl);
+    }, 5000);
 
     // Poll at configured interval
     setInterval(async () => {
-        // Only run on Shard 0 to prevent duplicates
+        // Only run on Shard 0 or un-sharded clients to prevent duplicates
         if (client.shard && client.shard.ids[0] !== 0) {
             return;
         }
 
-        await checkForNewItems(client, service, feedUrl);
+        if (!isFirstRun) {
+            await checkForNewItems(client, service, feedUrl);
+        }
     }, U2_POLL_INTERVAL);
 }
 
@@ -63,6 +66,12 @@ async function initializeCache(service: U2FeedService, feedUrl: string): Promise
         console.log("📦 Initializing U2 feed cache...");
         const items = await service.fetchFeed(feedUrl);
 
+        if (!items || items.length === 0) {
+            console.log("📦 U2 feed cache empty. Maybe the feed is down?");
+            isFirstRun = false;
+            return;
+        }
+
         for (const item of items) {
             seenItems.set(item.guid, item.title);
         }
@@ -72,6 +81,7 @@ async function initializeCache(service: U2FeedService, feedUrl: string): Promise
         isFirstRun = false;
     } catch (error) {
         console.error("Failed to initialize U2 feed cache:", error);
+        isFirstRun = false;
     }
 }
 
@@ -81,7 +91,7 @@ async function initializeCache(service: U2FeedService, feedUrl: string): Promise
 async function checkForNewItems(client: Client, service: U2FeedService, feedUrl: string): Promise<void> {
     try {
         const items = await service.fetchFeed(feedUrl);
-        if (items.length === 0) return;
+        if (!items || items.length === 0) return;
 
         // Find new or edited items
         const newItems: { item: FormattedU2Item; isEdited: boolean }[] = [];
@@ -91,16 +101,12 @@ async function checkForNewItems(client: Client, service: U2FeedService, feedUrl:
             if (prevTitle === undefined) {
                 // New item
                 seenItems.set(item.guid, item.title);
-                if (!isFirstRun) {
-                    newItems.push({ item: service.formatItem(item), isEdited: false });
-                }
+                newItems.push({ item, isEdited: false });
             } else if (prevTitle !== item.title) {
                 // Edited item (title changed)
                 seenItems.set(item.guid, item.title);
-                if (!isFirstRun) {
-                    console.log(`📦 Detected edit on ${item.guid}`);
-                    newItems.push({ item: service.formatItem(item), isEdited: true });
-                }
+                console.log(`📦 Detected edit on ${item.guid} (${item.title})`);
+                newItems.push({ item, isEdited: true });
             }
         }
         pruneSeenItems();
@@ -123,11 +129,10 @@ async function checkForNewItems(client: Client, service: U2FeedService, feedUrl:
                 const channel = await client.channels.fetch(guild.u2Feed.channelId!);
                 if (!channel || !(channel instanceof TextChannel)) continue;
 
-                // Get guild-specific filter (or default)
                 const filterRegex = new RegExp(guild.u2Feed.filter || U2_DEFAULT_FILTER, "i");
 
                 // Filter and post matching items (limit to 10 per cycle)
-                const matchingItems = newItems.filter(entry => filterRegex.test(entry.item.title));
+                const matchingItems = newItems.filter(entry => entry.item.title.match(filterRegex));
 
                 for (const entry of matchingItems.slice(0, 10)) {
                     const embed = buildItemEmbed(entry.item, entry.isEdited);
@@ -157,15 +162,13 @@ function buildItemEmbed(item: FormattedU2Item, isEdited: boolean): EmbedBuilder 
             iconURL: U2_ICON
         })
         .setTitle(item.title.length > 256 ? item.title.substring(0, 250) + "..." : item.title)
-        .setURL(item.link)
+        .setURL(item.link || "https://u2.dmhy.org")
         .setTimestamp(item.pubDate);
 
-    // Add image if found
     if (item.image) {
         embed.setImage(item.image);
     }
 
-    // Add fields
     embed.addFields(
         {
             name: "Category",
@@ -174,7 +177,7 @@ function buildItemEmbed(item: FormattedU2Item, isEdited: boolean): EmbedBuilder 
         },
         {
             name: "Size",
-            value: item.size,
+            value: item.size || "Unknown",
             inline: true
         }
     );

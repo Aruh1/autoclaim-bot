@@ -25,6 +25,7 @@
         "graphql-request": "^7.4.0",
         "mongoose": "^9.2.1",
         "node-cron": "^4.2.1",
+        "rss-parser": "^3.13.0",
         "universal-speedtest": "^3.0.0"
     },
     "prettier": {
