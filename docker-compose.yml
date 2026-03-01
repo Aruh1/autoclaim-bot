@@ -5,7 +5,7 @@
 services:
     bot:
         # Use pre-built image from GitHub Container Registry
-        image: ghcr.io/aruh1/autoclaim-bot:${IMAGE_TAG:-latest}
+        image: ghcr.io/yuramedia/autoclaim-bot:${IMAGE_TAG:-latest}
         container_name: autoclaim-bot
         restart: unless-stopped
 
