@@ -7,9 +7,29 @@ import type { IU2FeedSettings } from "../database/models/GuildSettings";
 
 export type { IU2FeedSettings };
 
+/** Raw parsed feed item from RSS XML */
+export interface U2FeedItem {
+    /** Raw title (may contain HTML entities) */
+    title: string;
+    /** Author field (e.g. "user@u2.dmhy.org (user)") */
+    author: string;
+    /** Category (e.g. "BDMV") */
+    category: string;
+    /** HTML description containing images and BD info */
+    description: string;
+    /** Torrent info hash (unique ID) */
+    guid: string;
+    /** Details page URL */
+    link: string;
+    /** RFC 2822 date string */
+    pubDate: string;
+    /** File size in bytes from enclosure (if available) */
+    sizeBytes: number | null;
+}
+
 /** Formatted feed item ready for Discord embed */
 export interface FormattedU2Item {
-    /** Cleaned title */
+    /** Cleaned, HTML-unescaped title */
     title: string;
     /** Details page URL */
     link: string;
@@ -23,6 +43,10 @@ export interface FormattedU2Item {
     size: string;
     /** Publication date */
     pubDate: Date;
+    /** Unix timestamp of publication */
+    pubDateUnix: number;
     /** Torrent info hash (used as unique ID) */
     guid: string;
+    /** Whether this item was already posted to Discord */
+    wasPosted: boolean;
 }

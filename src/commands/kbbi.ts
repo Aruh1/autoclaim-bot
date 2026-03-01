@@ -29,10 +29,8 @@ export async function execute(interaction: any) {
                 name: "KBBI Daring Kemendikdasmen",
                 url: KBBI_BASE_URL
             })
-            .setFooter({
-                text: "Sumber: KBBI Daring Kemendikdasmen"
-            })
-            .setTimestamp();
+            .setTimestamp()
+            .setThumbnail("https://kbbi.kemendikdasmen.go.id/Content/Images/logo%20tut%20wuri%20badan.png");
 
         let description = "";
 
