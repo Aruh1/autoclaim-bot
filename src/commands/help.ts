@@ -80,7 +80,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
                 name: "🎮 Endfield Token (1 token saja)",
                 value: [
                     "1. Login ke https://game.skport.com/endfield/sign-in",
-                    "2. Buka tab baru: `web-api.skport.com/cookie_store/account_token`",
+                    "2. Buka tab baru: https://web-api.skport.com/cookie_store/account_token",
                     "3. Copy bagian `code` dari JSON yang muncul",
                     "4. Paste di `/setup-endfield`",
                     "",
