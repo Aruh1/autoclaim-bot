@@ -5,7 +5,7 @@
 
 import { SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from "discord.js";
 import { User } from "../database/models/User";
-import { GAME_DISPLAY_NAMES, ENDFIELD } from "../constants";
+import { GAME_DISPLAY_NAMES } from "../constants";
 import { formatUtc8DateTime, discordTimestamp } from "../utils/time";
 
 export const data = new SlashCommandBuilder().setName("status").setDescription("Check your auto-claim status");
@@ -63,16 +63,13 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     }
 
     // Endfield status
-    if (user.endfield?.skOAuthCredKey) {
+    if (user.endfield?.accountToken) {
         const lastClaim = user.endfield.lastClaim ? discordTimestamp(user.endfield.lastClaim, "R") : "Never";
-        const serverName = ENDFIELD.servers[user.endfield.server] || "Unknown";
 
         embed.addFields({
             name: "🎮 Endfield",
             value: [
                 `**Account:** ${user.endfield.accountName || "Unknown"}`,
-                `**UID:** ${user.endfield.gameId}`,
-                `**Server:** ${serverName}`,
                 `**Last Claim:** ${lastClaim}`,
                 `**Result:** ${user.endfield.lastClaimResult || "N/A"}`
             ].join("\n"),

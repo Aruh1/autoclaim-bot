@@ -15,14 +15,8 @@ export interface IHoyolabData {
 }
 
 export interface IEndfieldData {
-    /** SK_OAUTH_CRED_KEY from cookies */
-    skOAuthCredKey: string;
-    /** SK_TOKEN_CACHE_KEY from localStorage (used for signing) */
-    skTokenCacheKey: string;
-    /** Endfield game UID */
-    gameId: string;
-    /** Server: "2" for Asia, "3" for Americas/Europe */
-    server: string;
+    /** ACCOUNT_TOKEN from web-api.skport.com/cookie_store/account_token */
+    accountToken: string;
     /** Display name */
     accountName: string;
     lastClaim?: Date;
@@ -56,10 +50,7 @@ const HoyolabSchema = new Schema<IHoyolabData>({
 });
 
 const EndfieldSchema = new Schema<IEndfieldData>({
-    skOAuthCredKey: { type: String, required: true },
-    skTokenCacheKey: { type: String, required: true },
-    gameId: { type: String, required: true },
-    server: { type: String, default: "2" },
+    accountToken: { type: String, required: true },
     accountName: { type: String, default: "Unknown" },
     lastClaim: { type: Date, index: true },
     lastClaimResult: { type: String }

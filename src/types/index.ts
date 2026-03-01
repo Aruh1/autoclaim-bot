@@ -7,13 +7,7 @@
 export type { ClaimResult, GameConfig, GameAccount, TokenValidation, RedeemResult } from "./hoyolab";
 
 // Endfield types
-export type {
-    AttendanceReward,
-    AttendanceResourceInfo,
-    EndfieldClaimResult,
-    EndfieldServiceOptions,
-    EndfieldValidation
-} from "./endfield";
+export type { EndfieldRoleResult, EndfieldClaimResult, EndfieldServiceOptions, EndfieldValidation } from "./endfield";
 
 // Crunchyroll types
 export type {

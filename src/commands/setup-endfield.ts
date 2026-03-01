@@ -1,7 +1,7 @@
 /**
  * Setup Endfield Command
  * Open modal for SKPORT/Endfield token configuration
- * Tokens obtained from: https://game.skport.com/endfield/sign-in
+ * Token obtained from: https://web-api.skport.com/cookie_store/account_token
  */
 
 import {
@@ -13,7 +13,6 @@ import {
     ActionRowBuilder,
     type ModalActionRowComponentBuilder
 } from "discord.js";
-import { ENDFIELD } from "../constants";
 
 export const data = new SlashCommandBuilder()
     .setName("setup-endfield")
@@ -22,39 +21,13 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const modal = new ModalBuilder().setCustomId("setup-endfield-modal").setTitle("Setup Endfield Token");
 
-    const credInput = new TextInputBuilder()
-        .setCustomId("endfield-cred")
-        .setLabel("SK_OAUTH_CRED_KEY (from Cookie)")
-        .setPlaceholder("Lihat /help untuk script | F12 > Application > Cookies > SK_OAUTH_CRED_KEY")
-        .setStyle(TextInputStyle.Paragraph)
-        .setRequired(true)
-        .setMinLength(20);
-
     const tokenInput = new TextInputBuilder()
-        .setCustomId("endfield-token-cache")
-        .setLabel("SK_TOKEN_CACHE_KEY (from LocalStorage)")
-        .setPlaceholder("Lihat /help untuk script | F12 > Application > Local Storage > SK_TOKEN_CACHE_KEY")
+        .setCustomId("endfield-account-token")
+        .setLabel("ACCOUNT_TOKEN")
+        .setPlaceholder("Login ke SKPORT lalu buka web-api.skport.com/cookie_store/account_token")
         .setStyle(TextInputStyle.Paragraph)
         .setRequired(true)
         .setMinLength(10);
-
-    const gameIdInput = new TextInputBuilder()
-        .setCustomId("endfield-game-id")
-        .setLabel("Game UID (number only)")
-        .setPlaceholder("Your Endfield UID, example: 10012345")
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true)
-        .setMinLength(5)
-        .setMaxLength(20);
-
-    const serverInput = new TextInputBuilder()
-        .setCustomId("endfield-server")
-        .setLabel(`Server (2=${ENDFIELD.servers["2"]}, 3=${ENDFIELD.servers["3"]})`)
-        .setPlaceholder("2")
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true)
-        .setMinLength(1)
-        .setMaxLength(1);
 
     const nicknameInput = new TextInputBuilder()
         .setCustomId("endfield-nickname")
@@ -64,13 +37,10 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         .setRequired(false)
         .setMaxLength(50);
 
-    const row1 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(credInput);
-    const row2 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(tokenInput);
-    const row3 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(gameIdInput);
-    const row4 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(serverInput);
-    const row5 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(nicknameInput);
+    const row1 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(tokenInput);
+    const row2 = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(nicknameInput);
 
-    modal.addComponents(row1, row2, row3, row4, row5);
+    modal.addComponents(row1, row2);
 
     await interaction.showModal(modal);
 }

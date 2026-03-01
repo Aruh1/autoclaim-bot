@@ -1,41 +1,34 @@
 /**
  * Endfield/SKPORT API Constants
  * Configuration for Endfield API endpoints
- * Based on: https://github.com/canaria3406/skport-auto-sign
+ * Reference: https://github.com/nano-shino/EndfieldCheckin
  */
+
+/** App code for OAuth grant */
+export const ENDFIELD_APP_CODE = "6eb76d4e13aa36e6";
+
+/** OAuth grant URL (get OAuth code from ACCOUNT_TOKEN) */
+export const ENDFIELD_GRANT_URL = "https://as.gryphline.com/user/oauth2/v2/grant";
+
+/** Generate cred from OAuth code */
+export const ENDFIELD_GENERATE_CRED_URL = "https://zonai.skport.com/web/v1/user/auth/generate_cred_by_code";
+
+/** Refresh token to get signToken */
+export const ENDFIELD_REFRESH_TOKEN_URL = "https://zonai.skport.com/web/v1/auth/refresh";
+
+/** Player binding URL (get game roles) */
+export const ENDFIELD_BINDING_URL = "https://zonai.skport.com/api/v1/game/player/binding";
+export const ENDFIELD_BINDING_PATH = "/api/v1/game/player/binding";
 
 /** Endfield attendance API URL */
 export const ENDFIELD_ATTENDANCE_URL = "https://zonai.skport.com/web/v1/game/endfield/attendance";
-
-/** Endfield attendance path (used for signing) */
 export const ENDFIELD_ATTENDANCE_PATH = "/web/v1/game/endfield/attendance";
 
-/** Endfield request headers template (matching reference) */
-export const ENDFIELD_HEADERS = {
-    Accept: "*/*",
-    "Accept-Encoding": "gzip, deflate, br, zstd",
-    "Content-Type": "application/json",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
-    Referer: "https://game.skport.com/",
-    platform: "3",
-    vName: "1.0.0",
-    Origin: "https://game.skport.com",
-    Connection: "keep-alive",
-    "Sec-Fetch-Dest": "empty",
-    "Sec-Fetch-Mode": "cors",
-    "Sec-Fetch-Site": "same-site",
-    Priority: "u=0",
-    TE: "trailers"
-} as const;
-
-/** Valid Endfield server IDs */
-export const ENDFIELD_VALID_SERVERS = ["2", "3"] as const;
+/** Endfield game ID in SKPORT system */
+export const ENDFIELD_GAME_ID = "3";
 
 /** Default platform for Endfield requests */
 export const ENDFIELD_PLATFORM = "3";
 
 /** Default version name for Endfield requests */
 export const ENDFIELD_VERSION = "1.0.0";
-
-/** Response code indicating token has expired */
-export const ENDFIELD_TOKEN_EXPIRED_CODE = 10000;

@@ -57,16 +57,9 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     }
 
     // Claim Endfield
-    if (
-        (service === "all" || service === "endfield") &&
-        user.endfield?.skOAuthCredKey &&
-        user.endfield?.skTokenCacheKey
-    ) {
+    if ((service === "all" || service === "endfield") && user.endfield?.accountToken) {
         const endfieldService = new EndfieldService({
-            cred: user.endfield.skOAuthCredKey,
-            skTokenCacheKey: user.endfield.skTokenCacheKey,
-            gameId: user.endfield.gameId,
-            server: user.endfield.server
+            accountToken: user.endfield.accountToken
         });
         const result = await endfieldService.claim();
 

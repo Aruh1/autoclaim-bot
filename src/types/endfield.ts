@@ -3,41 +3,28 @@
  * Type definitions for Endfield service interactions
  */
 
-/** Reward from attendance check-in */
-export interface AttendanceReward {
-    id?: string;
-    name: string;
-    count?: number;
-    icon?: string;
+/** Result of a single role's attendance check-in */
+export interface EndfieldRoleResult {
+    gameRole: string;
+    success: boolean;
+    message: string;
+    rewards?: string;
+    already?: boolean;
+    tokenExpired?: boolean;
 }
 
-/** Resource info from API response */
-export interface AttendanceResourceInfo {
-    id: string;
-    count: number;
-    name: string;
-    icon: string;
-}
-
-/** Result of an Endfield claim attempt */
+/** Result of an Endfield claim attempt (may include multiple roles) */
 export interface EndfieldClaimResult {
     success: boolean;
     message: string;
-    rewards?: AttendanceReward[];
-    already?: boolean;
+    results?: EndfieldRoleResult[];
     tokenExpired?: boolean;
 }
 
 /** Options for creating EndfieldService */
 export interface EndfieldServiceOptions {
-    /** SK_OAUTH_CRED_KEY from cookie */
-    cred: string;
-    /** SK_TOKEN_CACHE_KEY from localStorage (used for signing) */
-    skTokenCacheKey: string;
-    /** Endfield game UID */
-    gameId: string;
-    /** Server: "2" for Asia, "3" for Americas/Europe */
-    server?: string;
+    /** ACCOUNT_TOKEN from web-api.skport.com/cookie_store/account_token */
+    accountToken: string;
     /** Language code (default: "en") */
     language?: string;
 }
