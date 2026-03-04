@@ -1,7 +1,7 @@
 import { Client, GatewayIntentBits, Events } from "discord.js";
 import { config } from "./config";
 import { connectDatabase } from "./database/connection";
-import { startScheduler } from "./services/scheduler";
+import { startScheduler, checkMissedClaims } from "./services/scheduler";
 import { startCrunchyrollFeed } from "./services/crunchyroll-scheduler";
 import { startU2Feed } from "./services/u2-feed-scheduler";
 import { handleInteraction } from "./handlers/interaction";
@@ -25,6 +25,9 @@ client.once(Events.ClientReady, readyClient => {
 
     // Start scheduler
     startScheduler(client);
+
+    // Check for missed claims (recovery after downtime)
+    checkMissedClaims(client);
 
     // Start Crunchyroll feed
     startCrunchyrollFeed(client);

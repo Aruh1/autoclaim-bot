@@ -165,3 +165,88 @@ async function sendClaimNotification(client: Client, discordId: string, results:
         console.warn(`[Scheduler] Could not DM user ${discordId} (might have DMs off)`);
     }
 }
+
+/**
+ * Get the current date/time components in Asia/Singapore timezone
+ * @returns Object with year, month, day, hour, minute in SG timezone
+ */
+function getSingaporeTime(): { year: number; month: number; day: number; hour: number; minute: number } {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Singapore",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+    }).formatToParts(now);
+
+    const get = (type: string): number => parseInt(parts.find(p => p.type === type)?.value || "0", 10);
+
+    return {
+        year: get("year"),
+        month: get("month"),
+        day: get("day"),
+        hour: get("hour"),
+        minute: get("minute")
+    };
+}
+
+/**
+ * Check for missed claims on bot startup and run them if needed.
+ * Compares current time in Asia/Singapore timezone against the scheduled
+ * claim time. If we've passed today's claim time and any user hasn't
+ * been claimed yet today, triggers runDailyClaims().
+ * @param client - Discord client instance
+ */
+export async function checkMissedClaims(client: Client): Promise<void> {
+    try {
+        const { hour, minute } = config.scheduler;
+        const sg = getSingaporeTime();
+
+        const currentMinutes = sg.hour * 60 + sg.minute;
+        const scheduledMinutes = hour * 60 + minute;
+
+        // If we haven't passed today's claim time yet, nothing to recover
+        if (currentMinutes < scheduledMinutes) {
+            console.log("⏰ Scheduled claim time hasn't passed yet today. No recovery needed.");
+            return;
+        }
+
+        // Calculate midnight of today in Asia/Singapore as a UTC Date
+        // Create a date string in SG timezone, then convert back to UTC
+        const todayMidnightSG = new Date(
+            `${sg.year}-${String(sg.month).padStart(2, "0")}-${String(sg.day).padStart(2, "0")}T00:00:00+08:00`
+        );
+
+        // Find users who have tokens but haven't claimed today
+        const missedCount = await User.countDocuments({
+            $or: [
+                {
+                    "hoyolab.token": { $exists: true, $ne: "" },
+                    $or: [
+                        { "hoyolab.lastClaim": { $lt: todayMidnightSG } },
+                        { "hoyolab.lastClaim": { $exists: false } }
+                    ]
+                },
+                {
+                    "endfield.accountToken": { $exists: true, $ne: "" },
+                    $or: [
+                        { "endfield.lastClaim": { $lt: todayMidnightSG } },
+                        { "endfield.lastClaim": { $exists: false } }
+                    ]
+                }
+            ]
+        });
+
+        if (missedCount > 0) {
+            console.log(`⚠️ Found ${missedCount} user(s) with missed claims. Running recovery...`);
+            await runDailyClaims(client);
+        } else {
+            console.log("✅ No missed claims detected. All users are up to date.");
+        }
+    } catch (error) {
+        console.error("[Scheduler] Error checking missed claims:", error);
+    }
+}
