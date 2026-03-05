@@ -10,7 +10,9 @@ import type {
     CrunchyrollEpisode,
     FormattedEpisode,
     CrunchyrollSubtitle,
-    CrunchyrollPlayResponse
+    CrunchyrollPlayResponse,
+    CrunchyrollBrowseItem,
+    CrunchyrollBrowseResponse
 } from "../types/crunchyroll";
 import { LANG_MAP } from "../constants";
 
@@ -603,6 +605,42 @@ export class CrunchyrollService {
         } catch (error) {
             console.error("Subtitle download error:", error);
             return null;
+        }
+    }
+
+    /**
+     * Fetch seasonal series from Browse API
+     * @param seasonTag - e.g. "spring-2026", "winter-2026"
+     * @param locale - content locale
+     * @returns Array of series for the given season
+     */
+    async fetchSeasonalSeries(seasonTag: string, locale = "en-US"): Promise<CrunchyrollBrowseItem[]> {
+        const auth = await this.getAuth();
+        if (!auth) return [];
+
+        try {
+            const params = new URLSearchParams({
+                seasonal_tag: seasonTag,
+                n: "100",
+                type: "series",
+                locale,
+                force_locale: crypto.randomUUID()
+            });
+
+            const response = await fetch(`${this.API_BASE}/content/v2/discover/browse?${params}`, {
+                headers: {
+                    Authorization: `Bearer ${auth.access_token}`,
+                    "User-Agent": this.USER_AGENT
+                }
+            });
+
+            if (!response.ok) return [];
+
+            const data = (await response.json()) as CrunchyrollBrowseResponse;
+            return data.data ?? [];
+        } catch (error) {
+            console.error("Crunchyroll seasonal fetch error:", error);
+            return [];
         }
     }
 }
