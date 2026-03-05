@@ -6,14 +6,19 @@
 import { Client, TextChannel, EmbedBuilder } from "discord.js";
 import { GuildSettings } from "../database/models/GuildSettings";
 import { CrunchyrollService } from "./crunchyroll";
-import { LANG_MAP, CRUNCHYROLL_COLOR, CRUNCHYROLL_POLL_INTERVAL } from "../constants";
+import {
+    LANG_MAP,
+    CRUNCHYROLL_COLOR,
+    CRUNCHYROLL_POLL_INTERVAL,
+    MAX_SEEN_EPISODES,
+    MAX_EPISODES_PER_CYCLE,
+    MESSAGE_DELAY,
+    seenEpisodes,
+    feedLock
+} from "../constants";
 import { AnimeMetadataService } from "./anime-metadata";
 import type { FormattedEpisode } from "../types/crunchyroll";
 
-// Cache of last seen episode IDs (in-memory, capped to prevent memory leak)
-const MAX_SEEN_EPISODES = 500;
-/** Map of episode id -> title for tracking edits */
-const seenEpisodes = new Map<string, string>();
 let isFirstRun = true;
 
 /** Prune oldest entries when the map exceeds MAX_SEEN_EPISODES */
@@ -36,10 +41,16 @@ export function startCrunchyrollFeed(client: Client): void {
     // Initial fetch to populate cache
     initializeCache(service);
 
-    // Poll every 5 minute
+    // Poll every 5 minutes
     setInterval(async () => {
         // Only run on Shard 0 to prevent duplicates
         if (client.shard && client.shard.ids[0] !== 0) {
+            return;
+        }
+
+        // Skip if a previous check is still running
+        if (feedLock.isChecking) {
+            console.log("📺 Skipping feed check — previous run still in progress");
             return;
         }
 
@@ -65,6 +76,7 @@ async function initializeCache(service: CrunchyrollService): Promise<void> {
 }
 
 async function checkForNewEpisodes(client: Client, service: CrunchyrollService): Promise<void> {
+    feedLock.isChecking = true;
     try {
         const episodes = await service.fetchLatestEpisodes("en-US", 50);
         if (episodes.length === 0) return;
@@ -144,13 +156,13 @@ async function checkForNewEpisodes(client: Client, service: CrunchyrollService):
                 if (!channel || !(channel instanceof TextChannel)) continue;
 
                 // Send each new episode (limit to 100 per cycle to avoid spam)
-                for (const episode of enrichedEpisodes.slice(0, 100)) {
+                for (const episode of enrichedEpisodes.slice(0, MAX_EPISODES_PER_CYCLE)) {
                     const isEdited = editedSet.has(episode.episodeId);
                     const embed = buildEpisodeEmbed(episode, isEdited);
                     await channel.send({ embeds: [embed] });
 
                     // Small delay between messages
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    await new Promise(resolve => setTimeout(resolve, MESSAGE_DELAY));
                 }
             } catch (error) {
                 console.error(`Failed to send to guild ${guild.guildId}:`, error);
@@ -158,6 +170,8 @@ async function checkForNewEpisodes(client: Client, service: CrunchyrollService):
         }
     } catch (error) {
         console.error("Crunchyroll feed check error:", error);
+    } finally {
+        feedLock.isChecking = false;
     }
 }
 
