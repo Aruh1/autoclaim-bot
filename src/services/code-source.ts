@@ -34,6 +34,3 @@ export async function getCodes(): Promise<HashblenResponse | null> {
         return null;
     }
 }
-
-/** @deprecated Use getCodes() directly */
-export const CodeSourceService = { getCodes };

@@ -6,7 +6,7 @@
 import { SlashCommandBuilder, type ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { User } from "../database/models/User";
 import { HoyolabService, type GameAccount } from "../services/hoyolab";
-import { CodeSourceService } from "../services/code-source";
+import { getCodes } from "../services/code-source";
 import { getGameDisplayName } from "../constants";
 
 export const data = new SlashCommandBuilder()
@@ -92,7 +92,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         } else if (subcommand === "auto") {
             await interaction.editReply("⏳ Fetching codes and redeeming... This may take a moment.");
 
-            const sourceCodes = await CodeSourceService.getCodes();
+            const sourceCodes = await getCodes();
             if (!sourceCodes) {
                 await interaction.editReply("❌ Failed to fetch active codes from the database.");
                 return;

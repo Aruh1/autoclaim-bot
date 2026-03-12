@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { JishoService } from "../services/jisho";
+import { searchJisho } from "../services/jisho";
 import { JISHO_COLOR, JISHO_ICON_URL } from "../constants/jisho";
 import type { JishoWord } from "../types/jisho";
 
@@ -16,7 +16,7 @@ export async function execute(interaction: any) {
     const keyword = interaction.options.getString("kata");
 
     try {
-        const results = await JishoService.search(keyword);
+        const results = await searchJisho(keyword);
 
         if (!results || results.length === 0) {
             return interaction.editReply({

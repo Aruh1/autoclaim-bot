@@ -16,7 +16,7 @@ import {
     seenEpisodes,
     feedLock
 } from "../constants";
-import { AnimeMetadataService } from "./anime-metadata";
+import { searchAnime } from "./anime-metadata";
 import type { FormattedEpisode } from "../types/crunchyroll";
 
 let isFirstRun = true;
@@ -121,7 +121,7 @@ async function checkForNewEpisodes(client: Client, service: CrunchyrollService):
         // Enrich with Metadata (MAL/Anilist/AniDB)
         for (const ep of enrichedEpisodes) {
             try {
-                const metadata = await AnimeMetadataService.searchAnime(ep.seriesTitle);
+                const metadata = await searchAnime(ep.seriesTitle);
                 if (metadata) {
                     ep.externalLinks = {
                         anilist: metadata.siteUrl || `https://anilist.co/anime/${metadata.id}`,

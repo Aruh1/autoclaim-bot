@@ -66,6 +66,3 @@ export async function searchJisho(keyword: string): Promise<JishoWord[]> {
         return [];
     }
 }
-
-/** @deprecated Use searchJisho() directly */
-export const JishoService = { search: searchJisho };

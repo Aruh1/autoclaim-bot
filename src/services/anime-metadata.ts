@@ -30,6 +30,3 @@ export async function searchAnime(title: string): Promise<AnilistMedia | null> {
         return null;
     }
 }
-
-/** @deprecated Use searchAnime() directly */
-export const AnimeMetadataService = { searchAnime };
