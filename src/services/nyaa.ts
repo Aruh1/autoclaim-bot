@@ -143,17 +143,17 @@ export async function buildNyaaCommentEmbed(
     if (infoHash && infoHash !== "Unknown") {
         const images = await fetchAnimeImages(infoHash);
 
-        // Thumbnail: first screenshot
-        if (images.screenshots.length > 0) {
-            embed.setThumbnail(images.screenshots[0] || null);
+        // Thumbnail: Anilist cover or secondary screenshot
+        if (images.cover) {
+            embed.setThumbnail(images.cover);
+        } else if (images.screenshots.length > 1) {
+            embed.setThumbnail(images.screenshots[1] || null);
         }
 
-        // If the comment doesn't already have an image from markdown, apply cover/screenshot
+        // If the comment doesn't already have an image from markdown, apply primary screenshot
         if (!imageMatch || !imageMatch[1]) {
-            if (images.cover) {
-                embed.setImage(images.cover);
-            } else if (images.screenshots.length > 1) {
-                embed.setImage(images.screenshots[1] || null);
+            if (images.screenshots.length > 0) {
+                embed.setImage(images.screenshots[0] || null);
             }
         }
     }
@@ -174,14 +174,18 @@ export async function buildNyaaEmbed(
 ): Promise<EmbedBuilder[]> {
     const domain = provider === "sukebei" ? "sukebei.nyaa.si" : "nyaa.si";
 
+    const authorName = info.uploader || "nyaa";
+    const isAnonymous = authorName.toLowerCase() === "anonymous" || authorName === "nyaa";
+    const authorUrl = isAnonymous ? `https://${domain}/` : `https://${domain}/user/${encodeURIComponent(authorName)}`;
+
     const embed = new EmbedBuilder()
         .setColor(NYAA_COLOR)
         .setURL(url)
         .setTitle(info.title.slice(0, 256))
         .setAuthor({
-            name: info.uploader || "nyaa",
+            name: authorName,
             iconURL: `https://${domain}/static/img/avatar/default.png`,
-            url: `https://${domain}/`
+            url: authorUrl
         })
         .setThumbnail(`https://${domain}/static/img/avatar/default.png`);
 
@@ -207,7 +211,7 @@ export async function buildNyaaEmbed(
         { name: "📅 Date", value: info.date, inline: true },
         {
             name: "⬇️ AnimeTosho",
-            value: `[Torrent File](https://animetosho.org/view/torrent.${info.infoHash})`,
+            value: `[Torrent File](https://animetosho.org/view/${info.infoHash})`,
             inline: false
         }
     );
@@ -226,14 +230,14 @@ export async function buildNyaaEmbed(
     if (info.infoHash && info.infoHash !== "Unknown") {
         const images = await fetchAnimeImages(info.infoHash);
 
-        if (images.screenshots.length > 0) {
-            embed.setThumbnail(images.screenshots[0] || null);
+        if (images.cover) {
+            embed.setThumbnail(images.cover);
+        } else if (images.screenshots.length > 1) {
+            embed.setThumbnail(images.screenshots[1] || null);
         }
 
-        if (images.cover) {
-            embed.setImage(images.cover);
-        } else if (images.screenshots.length > 1) {
-            embed.setImage(images.screenshots[1] || null);
+        if (images.screenshots.length > 0) {
+            embed.setImage(images.screenshots[0] || null);
         }
 
         if (images.directDownloads.length > 0) {
@@ -248,7 +252,7 @@ export async function buildNyaaEmbed(
                 fields[atIndex] = {
                     ...fields[atIndex],
                     name: "⬇️ Downloads",
-                    value: `${ddlLinks}\n*[View on AnimeTosho](https://animetosho.org/view/torrent.${info.infoHash})*`
+                    value: `${ddlLinks}\n*[View on AnimeTosho](https://animetosho.org/view/${info.infoHash})*`
                 };
             }
         }
