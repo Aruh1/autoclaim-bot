@@ -132,6 +132,22 @@ export class U2FeedService {
     extractImage(description?: string): string | null {
         if (!description || description.trim() === "") return null;
 
+        // Primary: extract src attribute from <img> tag (handles CDATA HTML content)
+        // Use \b and non-greedy [^>]*? to reliably find src in any attribute order
+        const imgSrcMatch = description.match(/<img\b[^>]*?\bsrc=["']?([^"'\s>]+)["']?/i);
+        if (imgSrcMatch?.[1]) {
+            let url = decode(imgSrcMatch[1].trim());
+
+            if (U2_ATTACH_IMAGE_PATTERN.test(url)) {
+                url = `https://u2.dmhy.org/${url}`;
+            } else if (url.startsWith("//")) {
+                url = `https:${url}`;
+            }
+
+            return url;
+        }
+
+        // Fallback: match raw image URL ending in known extension
         const match = U2_IMAGE_PATTERN.exec(description);
         if (!match) return null;
 
@@ -205,9 +221,12 @@ export class U2FeedService {
 
         const pubDateUnix = this.getUnixPubTime(item.pubDate);
 
+        // Decode HTML entities in link URL (RSS XML encodes '&' as '&amp;')
+        const link = item.link ? decode(item.link.trim()) : "";
+
         return {
             title,
-            link: item.link || "",
+            link,
             image: this.extractImage(item.description) || null,
             category: item.category || "BDMV",
             uploader: this.extractUploader(item.author),
