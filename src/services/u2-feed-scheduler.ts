@@ -7,14 +7,7 @@
 import { Client, TextChannel, EmbedBuilder } from "discord.js";
 import { GuildSettings } from "../database/models/GuildSettings";
 import { U2FeedService } from "./u2-feed";
-import {
-    U2_POLL_INTERVAL,
-    U2_COLOR,
-    U2_ICON,
-    U2_DEFAULT_FILTER,
-    U2_MAX_ITEMS,
-    U2_FIRST_RUN_MAX_AGE
-} from "../constants/u2-feed";
+import { U2_POLL_INTERVAL, U2_COLOR, U2_ICON, U2_DEFAULT_FILTER, U2_MAX_ITEMS } from "../constants/u2-feed";
 import type { FormattedU2Item } from "../types/u2-feed";
 
 /**
@@ -65,7 +58,8 @@ export function startU2Feed(client: Client): void {
  * 1. Fetch RSS and parse items
  * 2. Add new items (matched via equals) to cache
  * 3. Sort by pubDate descending, cap at U2_MAX_ITEMS
- * 4. Post unposted items
+ * 4. On first check: silently populate cache (no Discord posts)
+ * 5. On subsequent checks: post unposted items
  */
 async function checkFeed(client: Client, service: U2FeedService, feedUrl: string): Promise<void> {
     try {
@@ -98,17 +92,18 @@ async function checkFeed(client: Client, service: U2FeedService, feedUrl: string
             cachedItems = cachedItems.slice(0, U2_MAX_ITEMS);
         }
 
-        // Post new items
-        await postNewItems(client, service);
-
-        // On first check, mark all items as posted (silent cache population)
+        // On first check, silently populate cache — do NOT post anything
         if (isFirstCheck) {
             for (const item of cachedItems) {
                 item.wasPosted = true;
             }
             console.log(`📦 Cached ${cachedItems.length} U2 items (first run, silent)`);
             isFirstCheck = false;
+            return;
         }
+
+        // Post new items on subsequent checks
+        await postNewItems(client, service);
     } catch (error) {
         console.error("U2 feed check error:", error);
         if (isFirstCheck) isFirstCheck = false;
@@ -128,17 +123,8 @@ async function postNewItems(client: Client, _service: U2FeedService): Promise<vo
 
     if (guilds.length === 0) return;
 
-    const now = Date.now();
-
     for (const item of cachedItems) {
         if (item.wasPosted) continue;
-
-        // On first check, skip items older than 24 hours
-        // Matches Rimuru-Bot's Instant check: isBefore(Instant.now().minus(24, ChronoUnit.HOURS))
-        if (isFirstCheck && item.pubDateUnix > 0) {
-            const itemAge = now - item.pubDateUnix * 1000;
-            if (itemAge > U2_FIRST_RUN_MAX_AGE) continue;
-        }
 
         // Post to each guild's configured channel
         for (const guild of guilds) {
