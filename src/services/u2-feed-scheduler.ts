@@ -38,10 +38,13 @@ export function startU2Feed(client: Client): void {
     }
 
     console.log("📦 Starting U2 BDMV feed scheduler...");
+    const maskedUrl = feedUrl.replace(/passkey=[^&\s]*/i, "passkey=***");
+    console.log(`📦 Feed URL: ${maskedUrl}`);
     const service = new U2FeedService();
 
-    // First check after a small delay
+    // First check after a small delay (shard-guarded)
     setTimeout(async () => {
+        if (client.shard && client.shard.ids[0] !== 0) return;
         await checkFeed(client, service, feedUrl);
     }, 5000);
 

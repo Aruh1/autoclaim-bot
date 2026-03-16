@@ -63,7 +63,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
                 // Validate regex
                 try {
-                    const _re = new RegExp(filter, "i"); // validate only
+                    new RegExp(filter, "i");
                 } catch {
                     await interaction.editReply({
                         content: `❌ Filter regex tidak valid: \`${filter}\``
